@@ -15,26 +15,20 @@ export default function Garage() {
 
   return (
     <div className="relative min-h-screen bg-background overflow-hidden">
-      {/* Full-screen car photo background */}
-      <div className="absolute inset-0">
-        {!carsLoading && primaryCar ? (
+      {/* Dark bg + car image centered/contained so whole car is visible */}
+      <div className="absolute inset-0 bg-[#0d0d0d]">
+        {!carsLoading && (primaryCar || user?.role !== "viewer") && (
           <img
             src={carPhoto}
             alt="My Car"
-            className="w-full h-full object-cover"
-            style={{ objectPosition: "center 40%" }}
+            className="w-full h-full object-contain"
+            style={{ objectPosition: "center 42%" }}
+            onError={(e) => { e.currentTarget.style.display = "none"; }}
           />
-        ) : !carsLoading && user?.role !== "viewer" ? (
-          <img
-            src={`${import.meta.env.BASE_URL}images/default-car.png`}
-            alt="Car"
-            className="w-full h-full object-cover opacity-60"
-            style={{ objectPosition: "center 40%" }}
-          />
-        ) : null}
-        {/* Multi-layer gradient: dark top, clear middle, very dark bottom */}
+        )}
+        {/* Gradient: darken top and bottom, leave middle clear */}
         <div className="absolute inset-0" style={{
-          background: "linear-gradient(to bottom, rgba(18,18,18,0.85) 0%, rgba(18,18,18,0.1) 35%, rgba(18,18,18,0.1) 55%, rgba(18,18,18,0.95) 80%, rgba(18,18,18,1) 100%)"
+          background: "linear-gradient(to bottom, rgba(13,13,13,0.92) 0%, rgba(13,13,13,0.0) 28%, rgba(13,13,13,0.0) 52%, rgba(13,13,13,0.88) 72%, rgba(13,13,13,1) 100%)"
         }} />
       </div>
 
@@ -64,35 +58,6 @@ export default function Garage() {
         </button>
       </div>
 
-      {/* Car name overlay (middle) */}
-      {primaryCar && (
-        <div className="relative z-10 mt-[30vh] px-5">
-          <div className="inline-flex items-center gap-2 bg-primary/90 backdrop-blur-md text-white text-[10px] font-black px-3 py-1.5 rounded-xl mb-3 shadow-glow uppercase tracking-wider">
-            Основное авто
-          </div>
-          <h1 className="text-5xl font-black text-white leading-tight drop-shadow-2xl">
-            {primaryCar.make}
-          </h1>
-          <p className="text-white/70 text-xl font-bold mt-1">{primaryCar.model}</p>
-          {primaryCar.year && (
-            <p className="text-white/40 text-sm font-medium mt-0.5">{primaryCar.year} г.</p>
-          )}
-        </div>
-      )}
-
-      {!primaryCar && !carsLoading && user?.role !== "viewer" && (
-        <div className="relative z-10 mt-[28vh] px-5 flex flex-col items-center justify-center text-center">
-          <div className="w-20 h-20 rounded-full glass-panel border-2 border-dashed border-white/20 flex items-center justify-center mb-4">
-            <Plus size={28} className="text-white/40" />
-          </div>
-          <h3 className="text-2xl font-black text-white mb-2">Добавьте авто</h3>
-          <p className="text-white/50 text-sm mb-6 max-w-[200px]">Покажите свой проект сообществу</p>
-          <button className="px-8 py-3 bg-primary rounded-2xl font-black text-white shadow-glow active:scale-95 transition-all">
-            + Добавить авто
-          </button>
-        </div>
-      )}
-
       {user?.role === "viewer" && (
         <div className="relative z-10 mt-[28vh] px-5 flex flex-col items-center text-center">
           <h3 className="text-3xl font-black text-white mb-2">Режим зрителя</h3>
@@ -106,8 +71,34 @@ export default function Garage() {
         </div>
       )}
 
-      {/* Bottom content: applications */}
-      <div className="relative z-10 absolute bottom-0 left-0 right-0 px-5 pb-36">
+      {/* Bottom content: car info + applications */}
+      <div className="relative z-10 absolute bottom-0 left-0 right-0 px-5 pb-28">
+
+        {/* Car name block */}
+        {primaryCar && (
+          <div className="mb-4">
+            <div className="inline-flex items-center gap-2 bg-primary/90 backdrop-blur-md text-white text-[10px] font-black px-3 py-1.5 rounded-xl mb-2 shadow-glow uppercase tracking-wider">
+              Основное авто
+            </div>
+            <h1 className="text-4xl font-black text-white leading-tight drop-shadow-2xl">
+              {primaryCar.make} <span className="text-white/70">{primaryCar.model}</span>
+            </h1>
+            {primaryCar.year && (
+              <p className="text-white/40 text-sm font-medium mt-0.5">{primaryCar.year} г.{primaryCar.color ? ` · ${primaryCar.color}` : ""}</p>
+            )}
+          </div>
+        )}
+
+        {!primaryCar && !carsLoading && user?.role !== "viewer" && (
+          <div className="mb-4 flex flex-col items-start">
+            <h3 className="text-2xl font-black text-white mb-1">Добавьте авто</h3>
+            <p className="text-white/50 text-sm mb-4">Покажите свой проект сообществу</p>
+            <button className="px-8 py-3 bg-primary rounded-2xl font-black text-white shadow-glow active:scale-95 transition-all">
+              + Добавить авто
+            </button>
+          </div>
+        )}
+
         {/* My applications */}
         {!appsLoading && apps && apps.length > 0 && (
           <div className="mb-4">

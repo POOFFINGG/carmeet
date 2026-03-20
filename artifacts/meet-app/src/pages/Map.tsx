@@ -2,21 +2,17 @@ import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useGetEvents } from "@workspace/api-client-react";
-import { Search, X } from "lucide-react";
+import { Search, X, SlidersHorizontal } from "lucide-react";
 import { BottomNav } from "@/components/Navigation";
+import { cn } from "@/lib/utils";
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-});
 
 const CATEGORY_COLORS: Record<string, string> = {
   motorsport: "#e53935",
-  exhibition: "#1976d2",
-  cruise: "#388e3c",
-  club: "#f57c00",
+  exhibition: "#7c4dff",
+  cruise: "#00bcd4",
+  club: "#ff9800",
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -31,6 +27,7 @@ export default function MapView() {
   const mapInstanceRef = useRef<L.Map | null>(null);
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
   const { data: events } = useGetEvents();
 
   useEffect(() => {
@@ -40,12 +37,18 @@ export default function MapView() {
       center: [55.7558, 37.6173],
       zoom: 10,
       zoomControl: false,
+      attributionControl: false,
     });
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    // Dark CartoDB tiles — matches the mockup
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+      subdomains: "abcd",
       maxZoom: 19,
     }).addTo(map);
+
+    L.control.attribution({ position: "bottomleft", prefix: false })
+      .addAttribution('© <a href="https://carto.com/">CARTO</a>')
+      .addTo(map);
 
     L.control.zoom({ position: "bottomright" }).addTo(map);
 
@@ -66,7 +69,8 @@ export default function MapView() {
     const filtered = events.filter(ev => {
       if (!ev.lat || !ev.lng) return false;
       if (activeFilter && ev.category !== activeFilter) return false;
-      if (search && !ev.title.toLowerCase().includes(search.toLowerCase()) && !ev.location.toLowerCase().includes(search.toLowerCase())) return false;
+      if (search && !ev.title.toLowerCase().includes(search.toLowerCase()) &&
+        !ev.location.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
 
@@ -75,47 +79,35 @@ export default function MapView() {
       const icon = L.divIcon({
         className: "",
         html: `
-          <div style="position:relative;width:40px;height:48px;">
-            <div style="
-              width:40px;height:40px;
-              background:${color};
-              border-radius:50% 50% 50% 0;
-              transform:rotate(-45deg);
-              border:3px solid white;
-              box-shadow:0 4px 16px rgba(0,0,0,0.4);
-            "></div>
-            <div style="
-              position:absolute;top:8px;left:8px;
-              width:24px;height:24px;
-              background:white;
-              border-radius:50%;
-              display:flex;align-items:center;justify-content:center;
-              font-size:11px;font-weight:800;color:${color};
-            ">★</div>
-          </div>
+          <div style="
+            width: 32px; height: 32px;
+            background: ${color};
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            border: 2px solid rgba(255,255,255,0.9);
+            box-shadow: 0 2px 12px ${color}88, 0 0 0 4px ${color}22;
+          "></div>
         `,
-        iconSize: [40, 48],
-        iconAnchor: [20, 48],
-        popupAnchor: [0, -48],
+        iconSize: [32, 32],
+        iconAnchor: [16, 32],
+        popupAnchor: [0, -36],
       });
 
       L.marker([ev.lat, ev.lng], { icon })
         .addTo(mapInstanceRef.current!)
         .bindPopup(`
-          <div style="font-family:'Geologica',sans-serif;min-width:200px;padding:4px 2px">
-            <div style="
-              display:inline-block;
-              background:${color};
-              color:white;
-              font-size:9px;font-weight:800;
-              padding:2px 8px;border-radius:6px;
-              text-transform:uppercase;letter-spacing:0.05em;
-              margin-bottom:8px;
-            ">${CATEGORY_LABELS[ev.category] || ev.category}</div>
-            <div style="font-weight:800;font-size:15px;margin-bottom:6px;color:#111;line-height:1.2">${ev.title}</div>
-            <div style="font-size:12px;color:#555;margin-bottom:3px">📅 ${new Date(ev.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</div>
-            <div style="font-size:12px;color:#555">📍 ${ev.location}</div>
-            <div style="font-size:11px;color:#888;margin-top:6px">👥 ${ev.applicationsCount} участников</div>
+          <div style="font-family:'Geologica',sans-serif;min-width:210px;padding:2px">
+            <div style="background:${color};color:white;font-size:9px;font-weight:800;
+              padding:3px 10px;border-radius:8px;text-transform:uppercase;
+              letter-spacing:0.08em;display:inline-block;margin-bottom:8px">
+              ${CATEGORY_LABELS[ev.category] || ev.category}
+            </div>
+            <div style="font-weight:800;font-size:14px;color:#111;margin-bottom:5px;line-height:1.2">${ev.title}</div>
+            <div style="font-size:11px;color:#666;margin-bottom:2px">
+              📅 ${new Date(ev.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
+            </div>
+            <div style="font-size:11px;color:#666">📍 ${ev.location}</div>
+            <div style="font-size:11px;color:${color};font-weight:700;margin-top:6px">👥 ${ev.applicationsCount} участников</div>
           </div>
         `, { maxWidth: 260 });
     });
@@ -124,69 +116,116 @@ export default function MapView() {
   return (
     <div className="relative w-full flex flex-col" style={{ height: "100dvh" }}>
       <style>{`
-        .leaflet-container { z-index: 1; }
-        .leaflet-popup-content-wrapper { border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
-        .leaflet-popup-content { margin: 14px 16px; }
-        .leaflet-popup-tip { display: none; }
-        .leaflet-control-zoom { border: none !important; margin-bottom: 100px !important; margin-right: 16px !important; }
-        .leaflet-control-zoom a { 
-          background: rgba(31,31,31,0.9) !important; 
-          backdrop-filter: blur(12px);
-          color: white !important; 
-          border: 1px solid rgba(255,255,255,0.1) !important;
-          width: 36px !important; height: 36px !important;
-          line-height: 36px !important;
-          font-size: 18px !important;
-          border-radius: 10px !important;
-          margin-bottom: 4px;
+        .leaflet-container { z-index: 1; background: #1a1a2e; }
+        .leaflet-popup-content-wrapper {
+          border-radius: 16px;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+          border: 1px solid rgba(255,255,255,0.08);
         }
-        .leaflet-control-zoom a:hover { background: rgba(229,57,53,0.8) !important; }
+        .leaflet-popup-content { margin: 14px 16px; }
+        .leaflet-popup-tip-container { display: none; }
+        .leaflet-control-zoom {
+          border: none !important;
+          margin-bottom: 110px !important;
+          margin-right: 16px !important;
+          display: flex; flex-direction: column; gap: 6px;
+        }
+        .leaflet-control-zoom a {
+          width: 38px !important; height: 38px !important;
+          line-height: 38px !important; font-size: 20px !important;
+          background: rgba(18,18,30,0.9) !important;
+          backdrop-filter: blur(16px) !important;
+          color: white !important;
+          border: 1px solid rgba(255,255,255,0.12) !important;
+          border-radius: 12px !important;
+        }
+        .leaflet-control-zoom a:hover { background: #e53935 !important; border-color: #e53935 !important; }
+        .leaflet-control-attribution { background: rgba(0,0,0,0.4) !important; color: rgba(255,255,255,0.3) !important; font-size: 8px !important; }
+        .leaflet-control-attribution a { color: rgba(255,255,255,0.4) !important; }
       `}</style>
 
-      {/* Search bar */}
-      <div className="absolute top-12 left-4 right-4 z-[1000] flex flex-col gap-2">
-        <div className="relative shadow-2xl">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50 w-5 h-5 z-10" />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full pl-12 pr-12 py-3.5 bg-black/70 backdrop-blur-xl border border-white/10 rounded-2xl text-white text-sm placeholder:text-white/40 outline-none focus:border-primary/60 transition-colors"
-            placeholder="Поиск событий..."
-          />
-          {search && (
-            <button onClick={() => setSearch("")} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white">
-              <X className="w-4 h-4" />
-            </button>
-          )}
+      {/* Top bar */}
+      <div className="absolute top-0 left-0 right-0 z-[1000] pt-12 px-4 pb-3 flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40 w-4 h-4" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full pl-10 pr-10 py-3 bg-black/60 backdrop-blur-2xl border border-white/10 rounded-2xl text-white text-sm placeholder:text-white/30 outline-none focus:border-white/25 transition-colors"
+              placeholder="Поиск на карте..."
+            />
+            {search && (
+              <button onClick={() => setSearch("")} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={cn(
+              "w-12 h-12 rounded-2xl flex items-center justify-center backdrop-blur-2xl border transition-all flex-shrink-0",
+              showFilters ? "bg-primary border-primary text-white" : "bg-black/60 border-white/10 text-white/60"
+            )}
+          >
+            <SlidersHorizontal className="w-5 h-5" />
+          </button>
         </div>
 
-        {/* Category filter chips */}
-        <div className="flex gap-2 overflow-x-auto no-scrollbar">
-          {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
+        {/* Category chips */}
+        {showFilters && (
+          <div className="flex gap-2 overflow-x-auto no-scrollbar">
             <button
-              key={key}
-              onClick={() => setActiveFilter(activeFilter === key ? null : key)}
-              className="flex-shrink-0 px-4 py-2 rounded-xl text-xs font-bold transition-all backdrop-blur-xl"
-              style={{
-                background: activeFilter === key ? CATEGORY_COLORS[key] : "rgba(0,0,0,0.6)",
-                color: "white",
-                border: `1px solid ${activeFilter === key ? CATEGORY_COLORS[key] : "rgba(255,255,255,0.1)"}`,
-                boxShadow: activeFilter === key ? `0 0 12px ${CATEGORY_COLORS[key]}60` : "none",
-              }}
+              onClick={() => setActiveFilter(null)}
+              className={cn(
+                "flex-shrink-0 px-4 py-2 rounded-xl text-xs font-bold backdrop-blur-2xl border transition-all",
+                !activeFilter ? "bg-white text-black border-white" : "bg-black/60 border-white/10 text-white/60"
+              )}
             >
-              {label}
+              Все
             </button>
-          ))}
-        </div>
+            {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => setActiveFilter(activeFilter === key ? null : key)}
+                className="flex-shrink-0 px-4 py-2 rounded-xl text-xs font-bold backdrop-blur-2xl border transition-all"
+                style={{
+                  background: activeFilter === key ? CATEGORY_COLORS[key] : "rgba(0,0,0,0.6)",
+                  borderColor: activeFilter === key ? CATEGORY_COLORS[key] : "rgba(255,255,255,0.1)",
+                  color: "white",
+                  boxShadow: activeFilter === key ? `0 0 16px ${CATEGORY_COLORS[key]}60` : "none",
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Map container */}
+      {/* Map */}
       <div ref={mapRef} className="flex-1 w-full" />
 
-      {/* Bottom gradient for nav readability */}
-      <div className="absolute bottom-0 left-0 right-0 h-36 bg-gradient-to-t from-black/50 to-transparent pointer-events-none z-[500]" />
+      {/* Legend */}
+      <div className="absolute bottom-28 left-4 z-[999] flex flex-col gap-1.5">
+        {Object.entries(CATEGORY_LABELS).map(([key, label]) => {
+          const count = events?.filter(e => e.category === key && e.lat && e.lng).length || 0;
+          if (!count) return null;
+          return (
+            <div key={key} className="flex items-center gap-2 bg-black/60 backdrop-blur-xl px-2.5 py-1.5 rounded-xl border border-white/8">
+              <div className="w-2.5 h-2.5 rounded-full" style={{ background: CATEGORY_COLORS[key] }} />
+              <span className="text-[10px] font-bold text-white/70">{label}</span>
+              <span className="text-[10px] font-bold ml-auto pl-2" style={{ color: CATEGORY_COLORS[key] }}>{count}</span>
+            </div>
+          );
+        })}
+      </div>
 
-      {/* Bottom nav */}
+      {/* Bottom gradient */}
+      <div className="absolute bottom-0 left-0 right-0 h-36 pointer-events-none z-[998]"
+        style={{ background: "linear-gradient(to top, rgba(18,18,30,0.7) 0%, transparent 100%)" }} />
+
+      {/* Nav */}
       <div className="absolute bottom-0 left-0 right-0 z-[1000]">
         <BottomNav />
       </div>

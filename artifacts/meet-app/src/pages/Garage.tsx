@@ -296,10 +296,10 @@ export default function Garage() {
       </div>
 
       {/* ── Car image — center ── */}
-      <div className="relative z-10 flex-1 flex items-center justify-center px-4 py-4">
+      <div className="relative z-10 flex-1 flex items-center justify-center px-4 py-2">
         {!carsLoading && (activeCar || user?.role !== "viewer") ? (
           <div className="relative w-full">
-            {/* Background scene image */}
+            {/* Background scene image — fills the whole block */}
             <div
               className="absolute inset-0 rounded-xl overflow-hidden"
               style={{ margin: "0 -8px" }}
@@ -309,23 +309,38 @@ export default function Garage() {
                 alt=""
                 aria-hidden
                 className="w-full h-full object-cover"
-                style={{ opacity: 0.92 }}
+                style={{ opacity: 0.92, objectPosition: "center bottom" }}
               />
-              {/* subtle gradient fade top + bottom */}
+              {/* fade top edge into page bg */}
               <div className="absolute inset-0" style={{
-                background: "linear-gradient(to bottom, rgba(4,0,12,0.55) 0%, transparent 25%, transparent 75%, rgba(4,0,12,0.65) 100%)"
+                background: "linear-gradient(to bottom, rgba(4,0,12,0.6) 0%, transparent 30%, transparent 100%)"
               }} />
             </div>
-            <img
-              key={activeCar?.id}
-              src={carDisplayUrl}
-              alt="My Car"
-              className="relative w-full max-h-[44vh] object-contain transition-opacity duration-300"
-              style={{ filter: "drop-shadow(0 8px 32px rgba(153,0,255,0.35)) drop-shadow(0 2px 12px rgba(0,170,255,0.2))" }}
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = `${import.meta.env.BASE_URL}images/default-car.png`;
-              }}
-            />
+
+            {/* Car sits at the bottom of the scene */}
+            <div className="relative flex flex-col items-center justify-end" style={{ minHeight: "38vh" }}>
+              {/* ground shadow / reflection */}
+              <div style={{
+                width: "72%",
+                height: "18px",
+                background: "radial-gradient(ellipse at center, rgba(0,0,0,0.55) 0%, transparent 75%)",
+                marginBottom: "-6px",
+                zIndex: 1,
+              }} />
+              <img
+                key={activeCar?.id}
+                src={carDisplayUrl}
+                alt="My Car"
+                className="relative w-full object-contain object-bottom transition-opacity duration-300"
+                style={{
+                  maxHeight: "34vh",
+                  filter: "drop-shadow(0 8px 32px rgba(153,0,255,0.35)) drop-shadow(0 2px 12px rgba(0,170,255,0.2))",
+                }}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = `${import.meta.env.BASE_URL}images/default-car.png`;
+                }}
+              />
+            </div>
             {/* AI status badge */}
             {showAiBadge && activeCar && (
               <div className="absolute top-2 right-2">

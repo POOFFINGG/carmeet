@@ -23,7 +23,7 @@ export default function Splash() {
             ME<span className="text-primary">E</span>T
           </h1>
           <p className="mt-4 text-lg font-medium text-white/70 uppercase tracking-widest">
-            Automotive Community
+            Авто комьюнити
           </p>
         </motion.div>
         

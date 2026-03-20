@@ -13,6 +13,7 @@ import Calendar from "@/pages/Calendar";
 import Profile from "@/pages/Profile";
 import EventDetail from "@/pages/EventDetail";
 import CreateEvent from "@/pages/CreateEvent";
+import Notifications from "@/pages/Notifications";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -62,6 +63,7 @@ function Router() {
       <Route path="/events/create" component={CreateEvent} />
       <Route path="/events/:id" component={EventDetail} />
       <Route path="/profile" component={Profile} />
+      <Route path="/notifications" component={Notifications} />
       {/* Root path falls through to AuthGuard redirect logic */}
       <Route path="/" component={() => null} />
       <Route component={NotFound} />

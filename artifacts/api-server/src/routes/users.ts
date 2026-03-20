@@ -99,6 +99,49 @@ router.post("/users/onboarding", async (req, res) => {
   });
 });
 
+router.patch("/users/me", async (req, res) => {
+  const telegramId = req.headers["x-telegram-id"] as string;
+  if (!telegramId) {
+    res.status(401).json({ error: "Missing x-telegram-id header" });
+    return;
+  }
+
+  const { role, interestCategories, organizationName, contactLink } = req.body;
+
+  const updateData: Record<string, unknown> = { updatedAt: new Date() };
+  if (role !== undefined) updateData.role = role;
+  if (interestCategories !== undefined) updateData.interestCategories = interestCategories;
+  if (organizationName !== undefined) updateData.organizationName = organizationName;
+  if (contactLink !== undefined) updateData.contactLink = contactLink;
+
+  const updated = await db
+    .update(usersTable)
+    .set(updateData)
+    .where(eq(usersTable.telegramId, telegramId))
+    .returning();
+
+  if (updated.length === 0) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  const user = updated[0];
+  res.json({
+    id: user.id,
+    telegramId: user.telegramId,
+    username: user.username,
+    displayName: user.displayName,
+    avatarUrl: user.avatarUrl,
+    role: user.role,
+    organizationName: user.organizationName,
+    contactLink: user.contactLink,
+    viewerSilhouette: user.viewerSilhouette,
+    interestCategories: user.interestCategories,
+    onboardingComplete: user.onboardingComplete,
+    createdAt: user.createdAt.toISOString(),
+  });
+});
+
 router.get("/users/:userId", async (req, res) => {
   const userId = parseInt(req.params.userId);
   if (isNaN(userId)) {

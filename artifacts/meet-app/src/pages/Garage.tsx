@@ -333,9 +333,10 @@ export default function Garage() {
                 alt="My Car"
                 className="relative object-contain object-bottom transition-opacity duration-300"
                 style={{
-                  width: "130%",
-                  marginLeft: "-15%",
-                  maxHeight: "42vh",
+                  width: "100%",
+                  maxHeight: "44vh",
+                  transform: "scale(1.7)",
+                  transformOrigin: "bottom center",
                   filter: "drop-shadow(0 8px 32px rgba(153,0,255,0.35)) drop-shadow(0 2px 12px rgba(0,170,255,0.2))",
                 }}
                 onError={(e) => {

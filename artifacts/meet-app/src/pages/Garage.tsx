@@ -296,54 +296,19 @@ export default function Garage() {
       </div>
 
       {/* ── Car image — center ── */}
-      <div className="relative z-10 flex-1 flex items-center justify-center px-4 py-2">
+      <div className="relative z-10 flex-1 flex items-center justify-center px-4 py-4">
         {!carsLoading && (activeCar || user?.role !== "viewer") ? (
           <div className="relative w-full">
-            {/* Background scene image — fills the whole block */}
-            <div
-              className="absolute inset-0 rounded-xl overflow-hidden"
-              style={{ margin: "0 -8px" }}
-            >
-              <img
-                src={`${BASE_URL}/images/garage-car-bg.png`}
-                alt=""
-                aria-hidden
-                className="w-full h-full object-cover"
-                style={{ opacity: 0.92, objectPosition: "center bottom" }}
-              />
-              {/* fade top edge into page bg */}
-              <div className="absolute inset-0" style={{
-                background: "linear-gradient(to bottom, rgba(4,0,12,0.6) 0%, transparent 30%, transparent 100%)"
-              }} />
-            </div>
-
-            {/* Car sits at the bottom of the scene */}
-            <div className="relative flex flex-col items-center justify-end" style={{ minHeight: "44vh" }}>
-              {/* ground shadow / reflection */}
-              <div style={{
-                width: "85%",
-                height: "22px",
-                background: "radial-gradient(ellipse at center, rgba(0,0,0,0.6) 0%, transparent 75%)",
-                marginBottom: "-8px",
-                zIndex: 1,
-              }} />
-              <img
-                key={activeCar?.id}
-                src={carDisplayUrl}
-                alt="My Car"
-                className="relative object-contain object-bottom transition-opacity duration-300"
-                style={{
-                  width: "100%",
-                  maxHeight: "44vh",
-                  transform: "scale(1.7)",
-                  transformOrigin: "bottom center",
-                  filter: "drop-shadow(0 8px 32px rgba(153,0,255,0.35)) drop-shadow(0 2px 12px rgba(0,170,255,0.2))",
-                }}
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = `${import.meta.env.BASE_URL}images/default-car.png`;
-                }}
-              />
-            </div>
+            <img
+              key={activeCar?.id}
+              src={carDisplayUrl}
+              alt="My Car"
+              className="w-full max-h-[44vh] object-contain transition-opacity duration-300"
+              style={{ filter: "drop-shadow(0 8px 32px rgba(153,0,255,0.35)) drop-shadow(0 2px 12px rgba(0,170,255,0.2))" }}
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = `${import.meta.env.BASE_URL}images/default-car.png`;
+              }}
+            />
             {/* AI status badge */}
             {showAiBadge && activeCar && (
               <div className="absolute top-2 right-2">

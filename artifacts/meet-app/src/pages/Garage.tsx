@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useLocation, Link } from "wouter";
 import { useGetMyCars, useGetMyApplications, useGetMe } from "@workspace/api-client-react";
 import { Plus, ChevronRight, Settings, Car, Camera } from "lucide-react";
@@ -21,20 +21,23 @@ export default function Garage() {
   const tgUser = getTgUser();
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
+  const [selectedCarId, setSelectedCarId] = useState<number | null>(null);
+
   const { data: user } = useGetMe({ query: { retry: false } });
   const { data: cars, isLoading: carsLoading } = useGetMyCars({ query: { enabled: !!user && user.role !== "viewer" } });
   const { data: apps, isLoading: appsLoading } = useGetMyApplications({ query: { enabled: !!user } });
 
   const primaryCar = cars?.find(c => c.isPrimary) || cars?.[0];
+  // Active car = explicitly selected OR primary
+  const activeCar = (selectedCarId ? cars?.find(c => c.id === selectedCarId) : null) ?? primaryCar;
 
   // Decide which image to show:
-  // - If AI approved → aiStyledImageUrl
-  // - If AI pending/result_ready → aiStyledImageUrl (owner only, with badge)
+  // - If AI approved/pending/result_ready → aiStyledImageUrl (owner always sees it)
   // - Otherwise → default-car.png
-  const showAiBadge = primaryCar?.aiStatus && primaryCar.aiStatus !== "none" && primaryCar.aiStatus !== "generating";
+  const showAiBadge = activeCar?.aiStatus && activeCar.aiStatus !== "none" && activeCar.aiStatus !== "generating";
   const carDisplayUrl =
-    primaryCar?.aiStatus === "approved" || primaryCar?.aiStatus === "pending_moderation" || primaryCar?.aiStatus === "result_ready"
-      ? (primaryCar.aiStyledImageUrl || `${import.meta.env.BASE_URL}images/default-car.png`)
+    activeCar?.aiStatus === "approved" || activeCar?.aiStatus === "pending_moderation" || activeCar?.aiStatus === "result_ready"
+      ? (activeCar.aiStyledImageUrl || `${import.meta.env.BASE_URL}images/default-car.png`)
       : `${import.meta.env.BASE_URL}images/default-car.png`;
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -111,24 +114,25 @@ export default function Garage() {
 
       {/* ── Car image — center ── */}
       <div className="relative z-10 flex-1 flex items-center justify-center px-4 py-4">
-        {!carsLoading && (primaryCar || user?.role !== "viewer") ? (
+        {!carsLoading && (activeCar || user?.role !== "viewer") ? (
           <div className="relative w-full">
             <img
+              key={activeCar?.id}
               src={carDisplayUrl}
               alt="My Car"
-              className="w-full max-h-[44vh] object-contain drop-shadow-[0_16px_48px_rgba(229,57,53,0.2)]"
+              className="w-full max-h-[44vh] object-contain drop-shadow-[0_16px_48px_rgba(229,57,53,0.2)] transition-opacity duration-300"
               onError={(e) => {
                 (e.target as HTMLImageElement).src = `${import.meta.env.BASE_URL}images/default-car.png`;
               }}
             />
             {/* AI status badge */}
-            {showAiBadge && primaryCar && (
+            {showAiBadge && activeCar && (
               <div className="absolute top-2 right-2">
                 <span className={cn(
                   "text-[10px] font-bold px-2.5 py-1 rounded-lg border",
-                  AI_STATUS_BADGE[primaryCar.aiStatus]?.color ?? "bg-white/10 text-white/50 border-white/10"
+                  AI_STATUS_BADGE[activeCar.aiStatus]?.color ?? "bg-white/10 text-white/50 border-white/10"
                 )}>
-                  {AI_STATUS_BADGE[primaryCar.aiStatus]?.label ?? primaryCar.aiStatus}
+                  {AI_STATUS_BADGE[activeCar.aiStatus]?.label ?? activeCar.aiStatus}
                 </span>
               </div>
             )}
@@ -145,24 +149,71 @@ export default function Garage() {
         )}
       </div>
 
-      {/* ── Bottom: car info + applications ── */}
+      {/* ── Bottom: car info + car switcher + applications ── */}
       <div className="relative z-10 flex-shrink-0 px-5 pb-28">
 
-        {primaryCar && (
+        {activeCar && (
           <div className="mb-4">
             <span className="inline-flex bg-primary/90 text-white text-[10px] font-black px-3 py-1 rounded-lg uppercase tracking-wider mb-2">
-              Основное авто
+              {activeCar.isPrimary ? "Основное авто" : "Второй автомобиль"}
             </span>
             <h1 className="text-4xl font-black text-white leading-tight">
-              {primaryCar.make} <span className="text-white/60 font-bold">{primaryCar.model}</span>
+              {activeCar.make} <span className="text-white/60 font-bold">{activeCar.model}</span>
             </h1>
             <p className="text-white/35 text-sm mt-0.5">
-              {[primaryCar.year && `${primaryCar.year} г.`, primaryCar.color].filter(Boolean).join(" · ")}
+              {[activeCar.year && `${activeCar.year} г.`, activeCar.color].filter(Boolean).join(" · ")}
             </p>
           </div>
         )}
 
-        {!primaryCar && !carsLoading && user?.role !== "viewer" && (
+        {/* ── Car switcher strip (if >1 cars) ── */}
+        {cars && cars.length > 1 && (
+          <div className="flex gap-2.5 mb-5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
+            {cars.map(car => {
+              const isActive = car.id === (activeCar?.id);
+              return (
+                <button
+                  key={car.id}
+                  onClick={() => setSelectedCarId(car.id)}
+                  className={cn(
+                    "flex-shrink-0 flex flex-col items-center gap-1.5 p-2.5 rounded-2xl border transition-all active:scale-95",
+                    isActive
+                      ? "bg-primary/15 border-primary/50"
+                      : "bg-white/5 border-white/8"
+                  )}
+                >
+                  <div className={cn(
+                    "w-14 h-9 rounded-xl flex items-center justify-center",
+                    isActive ? "bg-primary/10" : "bg-white/5"
+                  )}>
+                    <Car className={cn("w-6 h-6", isActive ? "text-primary" : "text-white/30")} />
+                  </div>
+                  <div className="text-center min-w-0">
+                    <p className={cn("text-[10px] font-black leading-none truncate max-w-[64px]", isActive ? "text-white" : "text-white/50")}>
+                      {car.make}
+                    </p>
+                    <p className={cn("text-[9px] leading-none mt-0.5 truncate max-w-[64px]", isActive ? "text-white/50" : "text-white/25")}>
+                      {car.model}
+                    </p>
+                  </div>
+                  {car.isPrimary && (
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                  )}
+                </button>
+              );
+            })}
+            {/* Add car button */}
+            <button
+              onClick={() => setLocation("/settings/car")}
+              className="flex-shrink-0 flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-2xl border border-dashed border-white/12 bg-white/3 active:scale-95 transition-all w-[72px]"
+            >
+              <Plus className="w-5 h-5 text-white/25" />
+              <p className="text-[9px] text-white/25 font-bold">Добавить</p>
+            </button>
+          </div>
+        )}
+
+        {!activeCar && !carsLoading && user?.role !== "viewer" && (
           <div className="mb-4">
             <h3 className="text-2xl font-black text-white mb-1">Добавьте авто</h3>
             <p className="text-white/40 text-sm mb-4">Покажите свой проект сообществу</p>

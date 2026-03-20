@@ -52,45 +52,45 @@ export default function CreateEvent() {
           <button onClick={() => window.history.back()} className="w-10 h-10 glass-panel rounded-full flex items-center justify-center">
             <ChevronLeft className="w-6 h-6" />
           </button>
-          <h1 className="text-2xl font-black">Create Event</h1>
+          <h1 className="text-2xl font-black">Создать событие</h1>
         </div>
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-white/80">Event Title</label>
-            <Input {...form.register("title")} placeholder="Night Run 2025" />
+            <label className="text-sm font-semibold text-white/80">Название события</label>
+            <Input {...form.register("title")} placeholder="Ночной заезд 2025" />
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-white/80">Category</label>
+            <label className="text-sm font-semibold text-white/80">Категория</label>
             <select 
               {...form.register("category")}
               className="flex h-14 w-full rounded-xl border-2 border-border bg-background/50 px-4 py-2 text-base focus-visible:outline-none focus-visible:border-primary text-white"
             >
-              <option value="motorsport">Motorsport</option>
-              <option value="exhibition">Exhibition</option>
-              <option value="cruise">Cruise / Run</option>
-              <option value="club">Club Meet</option>
+              <option value="motorsport">Автоспорт</option>
+              <option value="exhibition">Выставки</option>
+              <option value="cruise">Покатушки</option>
+              <option value="club">Автоклубы</option>
             </select>
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-white/80">Date & Time</label>
+            <label className="text-sm font-semibold text-white/80">Дата и время</label>
             <Input type="datetime-local" {...form.register("date")} />
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-white/80">Location</label>
-            <Input {...form.register("location")} placeholder="Downtown Square" />
+            <label className="text-sm font-semibold text-white/80">Место проведения</label>
+            <Input {...form.register("location")} placeholder="Центральная площадь" />
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-white/80">Max Participants (Optional)</label>
+            <label className="text-sm font-semibold text-white/80">Макс. участников (необязательно)</label>
             <Input type="number" {...form.register("maxParticipants")} placeholder="100" />
           </div>
 
           <Button type="submit" size="lg" className="w-full mt-8" isLoading={isPending}>
-            Publish Event
+            Опубликовать
           </Button>
         </form>
       </div>

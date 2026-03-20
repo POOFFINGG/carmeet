@@ -12,7 +12,7 @@ import { useCompleteOnboarding, useAddCar } from "@workspace/api-client-react";
 import { getTgUser, cn } from "@/lib/utils";
 
 const onboardingSchema = z.object({
-  displayName: z.string().min(2, "Name is required"),
+  displayName: z.string().min(2, "Имя обязательно"),
   role: z.enum(["viewer", "participant", "organizer"]),
   viewerSilhouette: z.enum(["bicycle", "scooter", "skateboard", "cart"]).optional().nullable(),
   organizationName: z.string().optional().nullable(),
@@ -78,11 +78,19 @@ export default function Onboarding() {
 
   const isPending = isSavingProfile || isAddingCar;
 
+  const getRussianSilhouette = (r: string) => {
+    if (r === "bicycle") return "велосипед";
+    if (r === "scooter") return "самокат";
+    if (r === "skateboard") return "скейт";
+    if (r === "cart") return "тележка";
+    return r;
+  }
+
   return (
     <Layout showNav={false}>
       <div className="flex-1 flex flex-col pt-12 px-6">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl font-bold">Welcome to MEET</h1>
+          <h1 className="text-2xl font-bold">Добро пожаловать в MEET</h1>
           <div className="flex gap-1">
             {[1, 2, 3].map(i => (
               <div key={i} className={cn("h-1 w-8 rounded-full", step >= i ? "bg-primary" : "bg-white/10")} />
@@ -99,28 +107,28 @@ export default function Onboarding() {
               exit={{ x: -20, opacity: 0 }}
               className="flex-1 flex flex-col"
             >
-              <h2 className="text-3xl font-black mb-2 text-gradient">Create Profile</h2>
-              <p className="text-muted-foreground mb-8">Let's start with the basics.</p>
+              <h2 className="text-3xl font-black mb-2 text-gradient">Создать профиль</h2>
+              <p className="text-muted-foreground mb-8">Начнём с основного.</p>
               
               <div className="space-y-6 flex-1">
                 <div className="flex justify-center mb-8">
                   <div className="w-24 h-24 rounded-full bg-secondary flex items-center justify-center border-4 border-card relative overflow-hidden">
                     <User size={32} className="text-muted-foreground" />
                     <div className="absolute inset-0 bg-primary/20 backdrop-blur-sm opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer">
-                      <span className="text-xs font-bold text-white">UPLOAD</span>
+                      <span className="text-xs font-bold text-white">ЗАГРУЗИТЬ</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-white/80">Display Name</label>
-                  <Input {...form.register("displayName")} placeholder="Your name" />
+                  <label className="text-sm font-semibold text-white/80">Имя</label>
+                  <Input {...form.register("displayName")} placeholder="Ваше имя" />
                   {errors.displayName && <p className="text-primary text-xs">{errors.displayName.message}</p>}
                 </div>
               </div>
 
               <Button size="lg" className="w-full mt-auto mb-6" onClick={nextStep}>
-                Next <ChevronRight className="ml-2 w-5 h-5" />
+                Далее <ChevronRight className="ml-2 w-5 h-5" />
               </Button>
             </motion.div>
           )}
@@ -133,37 +141,37 @@ export default function Onboarding() {
               exit={{ x: -20, opacity: 0 }}
               className="flex-1 flex flex-col"
             >
-              <h2 className="text-3xl font-black mb-2 text-gradient">Select Role</h2>
-              <p className="text-muted-foreground mb-8">How do you participate in the community?</p>
+              <h2 className="text-3xl font-black mb-2 text-gradient">Выбрать роль</h2>
+              <p className="text-muted-foreground mb-8">Как вы участвуете в комьюнити?</p>
 
               <div className="space-y-4 flex-1">
                 <RoleCard 
                   icon={<Eye className="w-6 h-6" />}
-                  title="Viewer"
-                  description="I just want to watch and attend events."
+                  title="Зритель"
+                  description="Я хочу наблюдать и посещать события."
                   active={role === "viewer"}
                   onClick={() => setValue("role", "viewer")}
                 />
                 <RoleCard 
                   icon={<Flag className="w-6 h-6" />}
-                  title="Participant"
-                  description="I have a car and want to participate."
+                  title="Участник"
+                  description="У меня есть авто и я хочу участвовать."
                   active={role === "participant"}
                   onClick={() => setValue("role", "participant")}
                 />
                 <RoleCard 
                   icon={<Shield className="w-6 h-6" />}
-                  title="Organizer"
-                  description="I host events and manage clubs."
+                  title="Организатор"
+                  description="Я организую мероприятия и управляю клубами."
                   active={role === "organizer"}
                   onClick={() => setValue("role", "organizer")}
                 />
               </div>
 
               <div className="flex gap-4 mt-auto mb-6">
-                <Button variant="outline" size="lg" onClick={prevStep} className="flex-1">Back</Button>
+                <Button variant="outline" size="lg" onClick={prevStep} className="flex-1">Назад</Button>
                 <Button size="lg" onClick={nextStep} className="flex-[2]">
-                  Next <ChevronRight className="ml-2 w-5 h-5" />
+                  Далее <ChevronRight className="ml-2 w-5 h-5" />
                 </Button>
               </div>
             </motion.div>
@@ -179,8 +187,8 @@ export default function Onboarding() {
             >
               {role === "viewer" ? (
                 <>
-                  <h2 className="text-3xl font-black mb-2 text-gradient">Choose Ride</h2>
-                  <p className="text-muted-foreground mb-8">Select a silhouette for your profile.</p>
+                  <h2 className="text-3xl font-black mb-2 text-gradient">Выбрать транспорт</h2>
+                  <p className="text-muted-foreground mb-8">Выберите силуэт для профиля.</p>
                   <div className="grid grid-cols-2 gap-4">
                     {["bicycle", "scooter", "skateboard", "cart"].map((r) => (
                       <div 
@@ -192,29 +200,29 @@ export default function Onboarding() {
                         )}
                       >
                         <CarIcon size={32} className={watch("viewerSilhouette") === r ? "text-primary" : "text-muted-foreground"} />
-                        <span className="font-bold capitalize">{r}</span>
+                        <span className="font-bold capitalize">{getRussianSilhouette(r)}</span>
                       </div>
                     ))}
                   </div>
                 </>
               ) : (
                 <>
-                  <h2 className="text-3xl font-black mb-2 text-gradient">Your Garage</h2>
-                  <p className="text-muted-foreground mb-8">Add your primary vehicle.</p>
+                  <h2 className="text-3xl font-black mb-2 text-gradient">Ваш гараж</h2>
+                  <p className="text-muted-foreground mb-8">Добавьте основной автомобиль.</p>
                   
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-semibold text-white/80">Make</label>
-                      <Input {...form.register("make")} placeholder="e.g. Porsche" />
+                      <label className="text-sm font-semibold text-white/80">Марка</label>
+                      <Input {...form.register("make")} placeholder="например, BMW" />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-semibold text-white/80">Model</label>
-                      <Input {...form.register("model")} placeholder="e.g. 911 GT3" />
+                      <label className="text-sm font-semibold text-white/80">Модель</label>
+                      <Input {...form.register("model")} placeholder="например, M3" />
                     </div>
                     {role === "organizer" && (
                       <div className="space-y-2 mt-6">
-                        <label className="text-sm font-semibold text-white/80">Organization Name</label>
-                        <Input {...form.register("organizationName")} placeholder="Club or Team Name" />
+                        <label className="text-sm font-semibold text-white/80">Название организации</label>
+                        <Input {...form.register("organizationName")} placeholder="Клуб или команда" />
                       </div>
                     )}
                   </div>
@@ -222,9 +230,9 @@ export default function Onboarding() {
               )}
 
               <div className="flex gap-4 mt-auto mb-6">
-                <Button variant="outline" size="lg" onClick={prevStep} className="flex-1" disabled={isPending}>Back</Button>
+                <Button variant="outline" size="lg" onClick={prevStep} className="flex-1" disabled={isPending}>Назад</Button>
                 <Button size="lg" onClick={handleSubmit(onSubmit)} className="flex-[2]" isLoading={isPending}>
-                  Complete Setup
+                  Завершить
                 </Button>
               </div>
             </motion.div>

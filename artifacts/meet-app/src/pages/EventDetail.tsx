@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useRoute } from "wouter";
 import { format } from "date-fns";
+import { ru } from "date-fns/locale";
 import { Layout } from "@/components/Layout";
 import { useGetEvent, useApplyToEvent, useGetMe } from "@workspace/api-client-react";
 import { ChevronLeft, MapPin, Calendar as CalIcon, Users, Flag, ShieldCheck } from "lucide-react";
@@ -37,6 +38,13 @@ export default function EventDetail() {
     return <Layout><div className="flex-1 flex items-center justify-center"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" /></div></Layout>;
   }
 
+  const catMap: Record<string, string> = {
+    motorsport: "Автоспорт",
+    exhibition: "Выставки",
+    cruise: "Покатушки",
+    club: "Автоклубы"
+  };
+
   return (
     <Layout showNav={false}>
       <div className="relative h-72">
@@ -44,7 +52,6 @@ export default function EventDetail() {
           <ChevronLeft className="w-6 h-6" />
         </button>
         
-        {/* event crowd luxury cars */}
         <img 
           src={event.coverImageUrl || "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=1200&q=80"} 
           alt={event.title}
@@ -55,7 +62,7 @@ export default function EventDetail() {
 
       <div className="px-6 -mt-12 relative z-10">
         <div className="inline-block px-3 py-1 bg-primary text-white text-[10px] font-bold rounded-lg mb-3 shadow-glow uppercase tracking-wider">
-          {event.category}
+          {catMap[event.category] || event.category}
         </div>
         <h1 className="text-3xl font-black leading-tight mb-4">{event.title}</h1>
         
@@ -73,7 +80,7 @@ export default function EventDetail() {
               <CalIcon className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-white">{format(new Date(event.date), "EEEE, MMMM d, yyyy")}</p>
+              <p className="text-white capitalize">{format(new Date(event.date), "EEEE, d MMMM, yyyy", { locale: ru })}</p>
               <p className="text-muted-foreground">{format(new Date(event.date), "HH:mm")}</p>
             </div>
           </div>
@@ -84,7 +91,7 @@ export default function EventDetail() {
             </div>
             <div>
               <p className="text-white">{event.location}</p>
-              <p className="text-muted-foreground">Get Directions</p>
+              <p className="text-primary cursor-pointer hover:underline">Проложить маршрут</p>
             </div>
           </div>
 
@@ -93,8 +100,8 @@ export default function EventDetail() {
               <Users className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-white">{event.applicationsCount} Attending</p>
-              <p className="text-muted-foreground">Max {event.maxParticipants || "Unlimited"}</p>
+              <p className="text-white">{event.applicationsCount} Участвуют</p>
+              <p className="text-muted-foreground">Макс. {event.maxParticipants || "Не ограничено"}</p>
             </div>
           </div>
         </div>
@@ -102,15 +109,15 @@ export default function EventDetail() {
         <div className="glass-panel p-5 rounded-2xl mb-8">
           <h3 className="font-bold mb-2 flex items-center gap-2">
             <ShieldCheck className="w-5 h-5 text-primary" />
-            Organizer
+            Организатор
           </h3>
           <p className="text-white/80 text-sm">{event.organizerName}</p>
         </div>
 
         <div className="mb-24">
-          <h3 className="font-bold text-lg mb-2">About Event</h3>
+          <h3 className="font-bold text-lg mb-2">О мероприятии</h3>
           <p className="text-muted-foreground leading-relaxed text-sm">
-            {event.description || "No description provided."}
+            {event.description || "Описание не указано."}
           </p>
         </div>
       </div>
@@ -119,11 +126,11 @@ export default function EventDetail() {
         <div className="w-full max-w-md">
           {applied ? (
             <Button size="lg" className="w-full bg-green-500 hover:bg-green-600 text-white shadow-[0_0_20px_rgba(34,197,94,0.4)] border-none" disabled>
-              Application Submitted
+              Заявка отправлена
             </Button>
           ) : (
             <Button size="lg" className="w-full" onClick={handleApply} isLoading={isPending}>
-              <Flag className="mr-2 w-5 h-5" /> Apply as {user?.role === "viewer" ? "Viewer" : "Participant"}
+              <Flag className="mr-2 w-5 h-5" /> {user?.role === "viewer" ? "Записаться как зритель" : "Записаться как участник"}
             </Button>
           )}
         </div>

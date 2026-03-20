@@ -299,11 +299,28 @@ export default function Garage() {
       <div className="relative z-10 flex-1 flex items-center justify-center px-4 py-4">
         {!carsLoading && (activeCar || user?.role !== "viewer") ? (
           <div className="relative w-full">
+            {/* Background scene image */}
+            <div
+              className="absolute inset-0 rounded-xl overflow-hidden"
+              style={{ margin: "0 -8px" }}
+            >
+              <img
+                src={`${BASE_URL}/images/garage-car-bg.png`}
+                alt=""
+                aria-hidden
+                className="w-full h-full object-cover"
+                style={{ opacity: 0.92 }}
+              />
+              {/* subtle gradient fade top + bottom */}
+              <div className="absolute inset-0" style={{
+                background: "linear-gradient(to bottom, rgba(4,0,12,0.55) 0%, transparent 25%, transparent 75%, rgba(4,0,12,0.65) 100%)"
+              }} />
+            </div>
             <img
               key={activeCar?.id}
               src={carDisplayUrl}
               alt="My Car"
-              className="w-full max-h-[44vh] object-contain transition-opacity duration-300"
+              className="relative w-full max-h-[44vh] object-contain transition-opacity duration-300"
               style={{ filter: "drop-shadow(0 8px 32px rgba(153,0,255,0.35)) drop-shadow(0 2px 12px rgba(0,170,255,0.2))" }}
               onError={(e) => {
                 (e.target as HTMLImageElement).src = `${import.meta.env.BASE_URL}images/default-car.png`;

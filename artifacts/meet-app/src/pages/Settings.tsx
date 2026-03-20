@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { ChevronLeft, Car, UserCog, Tag, MessageCircle, ChevronRight, Check } from "lucide-react";
+import { ChevronLeft, Car, UserCog, Tag, MessageCircle, ChevronRight, Check, ShieldCheck } from "lucide-react";
 import { useGetMe, useGetMyCars } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
@@ -34,6 +34,7 @@ export default function Settings() {
 
   const tgUser = getTgUser();
   const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+  const isAdmin = ["1000001", "tg_123456789"].includes(tgUser.id);
 
   async function patchUser(body: object) {
     setSaving(true);
@@ -215,7 +216,7 @@ export default function Settings() {
           <p className="text-white/30 text-xs font-bold uppercase tracking-widest mb-2 px-1">Автомобиль</p>
           <div className="bg-white/4 rounded-2xl border border-white/6 overflow-hidden">
             <button
-              onClick={() => setLocation("/garage")}
+              onClick={() => setLocation("/settings/car")}
               className="w-full flex items-center justify-between px-4 py-4 active:bg-white/4 transition-all"
             >
               <div className="flex items-center gap-3">
@@ -295,6 +296,30 @@ export default function Settings() {
             </a>
           </div>
         </div>
+
+        {/* ── Администрирование (только для adminов) ── */}
+        {isAdmin && (
+          <div>
+            <p className="text-white/30 text-xs font-bold uppercase tracking-widest mb-2 px-1">Администрирование</p>
+            <div className="bg-white/4 rounded-2xl border border-white/6 overflow-hidden">
+              <button
+                onClick={() => setLocation("/admin")}
+                className="w-full flex items-center justify-between px-4 py-4 active:bg-white/4 transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-orange-500/15 flex items-center justify-center">
+                    <ShieldCheck className="w-4.5 h-4.5 text-orange-400" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-white font-bold text-sm">Модерация AI-изображений</p>
+                    <p className="text-white/35 text-xs mt-0.5">Одобрить или отклонить</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-white/25" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* App version */}
         <p className="text-center text-white/15 text-xs mt-2">MEET v1.0 · Авто комьюнити</p>

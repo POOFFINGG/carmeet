@@ -318,22 +318,24 @@ export default function Garage() {
             </div>
 
             {/* Car sits at the bottom of the scene */}
-            <div className="relative flex flex-col items-center justify-end" style={{ minHeight: "38vh" }}>
+            <div className="relative flex flex-col items-center justify-end" style={{ minHeight: "44vh" }}>
               {/* ground shadow / reflection */}
               <div style={{
-                width: "72%",
-                height: "18px",
-                background: "radial-gradient(ellipse at center, rgba(0,0,0,0.55) 0%, transparent 75%)",
-                marginBottom: "-6px",
+                width: "85%",
+                height: "22px",
+                background: "radial-gradient(ellipse at center, rgba(0,0,0,0.6) 0%, transparent 75%)",
+                marginBottom: "-8px",
                 zIndex: 1,
               }} />
               <img
                 key={activeCar?.id}
                 src={carDisplayUrl}
                 alt="My Car"
-                className="relative w-full object-contain object-bottom transition-opacity duration-300"
+                className="relative object-contain object-bottom transition-opacity duration-300"
                 style={{
-                  maxHeight: "34vh",
+                  width: "130%",
+                  marginLeft: "-15%",
+                  maxHeight: "42vh",
                   filter: "drop-shadow(0 8px 32px rgba(153,0,255,0.35)) drop-shadow(0 2px 12px rgba(0,170,255,0.2))",
                 }}
                 onError={(e) => {

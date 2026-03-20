@@ -49,7 +49,7 @@ export default function Garage() {
           </div>
         </div>
         <button
-          onClick={() => setLocation("/profile")}
+          onClick={() => setLocation("/settings")}
           className="w-9 h-9 rounded-full flex items-center justify-center border border-white/10 bg-white/5 active:scale-90 transition-all"
         >
           <Settings className="w-4 h-4 text-white/50" />

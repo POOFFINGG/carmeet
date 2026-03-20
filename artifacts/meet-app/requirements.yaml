@@ -1,0 +1,25 @@
+packages:
+  "framer-motion": "For premium page transitions and micro-interactions"
+  "react-hook-form": "For robust onboarding and event creation forms"
+  "@hookform/resolvers": "For zod validation integration"
+  "zod": "Schema validation for forms"
+  "date-fns": "For formatting event dates and times"
+  "clsx": "For conditional tailwind classes"
+  "tailwind-merge": "For merging tailwind classes safely"
+  "lucide-react": "For beautiful consistent iconography"
+
+images:
+  - path: "artifacts/meet-app/public/images/hero-splash.png"
+    description: "Dark cinematic automotive background, red neon lights reflecting on wet asphalt, sleek sports car silhouette, premium 4k"
+    aspect_ratio: "9:16"
+  - path: "artifacts/meet-app/public/images/map-bg.png"
+    description: "Dark mode sleek minimalist city map background, glowing red routes, cyber aesthetic"
+    aspect_ratio: "9:16"
+  - path: "artifacts/meet-app/public/images/default-car.png"
+    description: "Abstract dark geometric car shape, studio lighting, vivid red accents, premium 3d render"
+    aspect_ratio: "16:9"
+
+notes:
+  - Mocking Telegram WebApp user data since this runs in a browser
+  - Using workspace API hooks from @workspace/api-client-react
+  - Force dark mode at the root level CSS

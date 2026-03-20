@@ -17,6 +17,15 @@ const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 
 let _baseUrl: string | null = null;
 let _authTokenGetter: AuthTokenGetter | null = null;
+let _extraHeadersGetter: (() => Record<string, string>) | null = null;
+
+/**
+ * Register a getter that supplies extra headers to attach to every request.
+ * Useful for injecting x-telegram-id or other custom headers.
+ */
+export function setExtraHeadersGetter(getter: (() => Record<string, string>) | null): void {
+  _extraHeadersGetter = getter;
+}
 
 /**
  * Set a base URL that is prepended to every relative request URL
@@ -352,6 +361,16 @@ export async function customFetch<T = unknown>(
     const token = await _authTokenGetter();
     if (token) {
       headers.set("authorization", `Bearer ${token}`);
+    }
+  }
+
+  // Attach extra headers (e.g. x-telegram-id)
+  if (_extraHeadersGetter) {
+    const extraHeaders = _extraHeadersGetter();
+    for (const [key, value] of Object.entries(extraHeaders)) {
+      if (!headers.has(key)) {
+        headers.set(key, value);
+      }
     }
   }
 

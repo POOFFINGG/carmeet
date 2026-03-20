@@ -1,22 +1,31 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: MEET Automotive Community API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: users
+    description: User profile operations
+  - name: events
+    description: Event operations
+  - name: cars
+    description: Car/garage operations
+  - name: applications
+    description: Event application operations
+  - name: clubs
+    description: Auto club operations
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +33,392 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /users/me:
+    get:
+      operationId: getMe
+      tags: [users]
+      summary: Get current user profile
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: Not found
+
+  /users/onboarding:
+    post:
+      operationId: completeOnboarding
+      tags: [users]
+      summary: Complete user onboarding
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OnboardingRequest"
+      responses:
+        "200":
+          description: User profile created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users/{userId}:
+    get:
+      operationId: getUserById
+      tags: [users]
+      summary: Get user by ID
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /events:
+    get:
+      operationId: getEvents
+      tags: [events]
+      summary: Get list of events
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: lat
+          in: query
+          schema:
+            type: number
+        - name: lng
+          in: query
+          schema:
+            type: number
+        - name: radius
+          in: query
+          schema:
+            type: number
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Event"
+    post:
+      operationId: createEvent
+      tags: [events]
+      summary: Create a new event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEventRequest"
+      responses:
+        "201":
+          description: Event created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+
+  /events/{eventId}:
+    get:
+      operationId: getEvent
+      tags: [events]
+      summary: Get event by ID
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Event details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+    put:
+      operationId: updateEvent
+      tags: [events]
+      summary: Update event
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEventRequest"
+      responses:
+        "200":
+          description: Event updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+    delete:
+      operationId: deleteEvent
+      tags: [events]
+      summary: Delete/cancel event
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Event deleted
+
+  /events/{eventId}/applications:
+    get:
+      operationId: getEventApplications
+      tags: [applications]
+      summary: Get applications for an event
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of applications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Application"
+    post:
+      operationId: applyToEvent
+      tags: [applications]
+      summary: Apply to participate in event
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApplyRequest"
+      responses:
+        "201":
+          description: Application submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Application"
+
+  /events/{eventId}/applications/{applicationId}:
+    put:
+      operationId: updateApplication
+      tags: [applications]
+      summary: Update application status (organizer)
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateApplicationRequest"
+      responses:
+        "200":
+          description: Application updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Application"
+    delete:
+      operationId: cancelApplication
+      tags: [applications]
+      summary: Cancel/delete application
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Application cancelled
+
+  /cars:
+    get:
+      operationId: getMyCars
+      tags: [cars]
+      summary: Get my garage (cars)
+      responses:
+        "200":
+          description: List of cars
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Car"
+    post:
+      operationId: addCar
+      tags: [cars]
+      summary: Add a car to garage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddCarRequest"
+      responses:
+        "201":
+          description: Car added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Car"
+
+  /cars/{carId}:
+    put:
+      operationId: updateCar
+      tags: [cars]
+      summary: Update car details
+      parameters:
+        - name: carId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddCarRequest"
+      responses:
+        "200":
+          description: Car updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Car"
+    delete:
+      operationId: deleteCar
+      tags: [cars]
+      summary: Remove car from garage
+      parameters:
+        - name: carId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Car removed
+
+  /clubs:
+    get:
+      operationId: getClubs
+      tags: [clubs]
+      summary: Get recommended clubs
+      parameters:
+        - name: make
+          in: query
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of clubs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Club"
+
+  /users/me/notifications:
+    get:
+      operationId: getMyNotifications
+      tags: [users]
+      summary: Get user notifications
+      responses:
+        "200":
+          description: List of notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Notification"
+
+  /users/me/applications:
+    get:
+      operationId: getMyApplications
+      tags: [applications]
+      summary: Get current user's applications
+      responses:
+        "200":
+          description: List of applications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Application"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +429,393 @@ components:
       required:
         - status
 
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        telegramId:
+          type: string
+        username:
+          type: string
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+          nullable: true
+        role:
+          type: string
+          enum: [viewer, participant, organizer]
+        organizationName:
+          type: string
+          nullable: true
+        contactLink:
+          type: string
+          nullable: true
+        viewerSilhouette:
+          type: string
+          nullable: true
+          enum: [bicycle, scooter, skateboard, cart]
+        interestCategories:
+          type: array
+          items:
+            type: string
+        onboardingComplete:
+          type: boolean
+        createdAt:
+          type: string
+      required:
+        - id
+        - telegramId
+        - username
+        - displayName
+        - role
+        - onboardingComplete
+        - interestCategories
+        - createdAt
+
+    OnboardingRequest:
+      type: object
+      properties:
+        telegramId:
+          type: string
+        username:
+          type: string
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+          nullable: true
+        role:
+          type: string
+          enum: [viewer, participant, organizer]
+        viewerSilhouette:
+          type: string
+          nullable: true
+          enum: [bicycle, scooter, skateboard, cart]
+        organizationName:
+          type: string
+          nullable: true
+        contactLink:
+          type: string
+          nullable: true
+        interestCategories:
+          type: array
+          items:
+            type: string
+      required:
+        - telegramId
+        - username
+        - displayName
+        - role
+
+    Event:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        category:
+          type: string
+          enum: [motorsport, exhibition, cruise, club]
+        subcategories:
+          type: array
+          items:
+            type: string
+        organizerId:
+          type: integer
+        organizerName:
+          type: string
+        organizerContact:
+          type: string
+          nullable: true
+        date:
+          type: string
+        endDate:
+          type: string
+          nullable: true
+        location:
+          type: string
+        lat:
+          type: number
+          nullable: true
+        lng:
+          type: number
+          nullable: true
+        maxParticipants:
+          type: integer
+          nullable: true
+        isPrivate:
+          type: boolean
+        coverImageUrl:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [upcoming, ongoing, finished, cancelled]
+        applicationsCount:
+          type: integer
+        viewersCount:
+          type: integer
+        createdAt:
+          type: string
+      required:
+        - id
+        - title
+        - category
+        - subcategories
+        - organizerId
+        - organizerName
+        - date
+        - location
+        - isPrivate
+        - status
+        - applicationsCount
+        - viewersCount
+        - createdAt
+
+    CreateEventRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        category:
+          type: string
+          enum: [motorsport, exhibition, cruise, club]
+        subcategories:
+          type: array
+          items:
+            type: string
+        date:
+          type: string
+        endDate:
+          type: string
+          nullable: true
+        location:
+          type: string
+        lat:
+          type: number
+          nullable: true
+        lng:
+          type: number
+          nullable: true
+        maxParticipants:
+          type: integer
+          nullable: true
+        isPrivate:
+          type: boolean
+        coverImageUrl:
+          type: string
+          nullable: true
+      required:
+        - title
+        - category
+        - subcategories
+        - date
+        - location
+        - isPrivate
+
+    Application:
+      type: object
+      properties:
+        id:
+          type: integer
+        eventId:
+          type: integer
+        eventTitle:
+          type: string
+          nullable: true
+        userId:
+          type: integer
+        userName:
+          type: string
+          nullable: true
+        userAvatarUrl:
+          type: string
+          nullable: true
+        carId:
+          type: integer
+          nullable: true
+        carMake:
+          type: string
+          nullable: true
+        carModel:
+          type: string
+          nullable: true
+        type:
+          type: string
+          enum: [participant, viewer]
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+        comment:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required:
+        - id
+        - eventId
+        - userId
+        - type
+        - status
+        - createdAt
+
+    ApplyRequest:
+      type: object
+      properties:
+        carId:
+          type: integer
+          nullable: true
+        type:
+          type: string
+          enum: [participant, viewer]
+        comment:
+          type: string
+          nullable: true
+      required:
+        - type
+
+    UpdateApplicationRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [approved, rejected]
+      required:
+        - status
+
+    Car:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        make:
+          type: string
+        model:
+          type: string
+        year:
+          type: integer
+          nullable: true
+        color:
+          type: string
+          nullable: true
+        photoUrl:
+          type: string
+          nullable: true
+        aiStyledImageUrl:
+          type: string
+          nullable: true
+        categories:
+          type: array
+          items:
+            type: string
+        isPrimary:
+          type: boolean
+        createdAt:
+          type: string
+      required:
+        - id
+        - userId
+        - make
+        - model
+        - isPrimary
+        - categories
+        - createdAt
+
+    AddCarRequest:
+      type: object
+      properties:
+        make:
+          type: string
+        model:
+          type: string
+        year:
+          type: integer
+          nullable: true
+        color:
+          type: string
+          nullable: true
+        photoUrl:
+          type: string
+          nullable: true
+        categories:
+          type: array
+          items:
+            type: string
+        isPrimary:
+          type: boolean
+      required:
+        - make
+        - model
+
+    Club:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        category:
+          type: string
+        subcategory:
+          type: string
+          nullable: true
+        logoUrl:
+          type: string
+          nullable: true
+        contactLink:
+          type: string
+          nullable: true
+        membersCount:
+          type: integer
+        createdAt:
+          type: string
+      required:
+        - id
+        - name
+        - category
+        - membersCount
+        - createdAt
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        type:
+          type: string
+          enum: [event_reminder, application_approved, application_rejected, new_event, event_cancelled]
+        title:
+          type: string
+        message:
+          type: string
+        eventId:
+          type: integer
+          nullable: true
+        isRead:
+          type: boolean
+        createdAt:
+          type: string
+      required:
+        - id
+        - userId
+        - type
+        - title
+        - message
+        - isRead
+        - createdAt

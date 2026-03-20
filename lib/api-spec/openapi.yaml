@@ -452,6 +452,9 @@ components:
         contactLink:
           type: string
           nullable: true
+        adminContact:
+          type: string
+          nullable: true
         viewerSilhouette:
           type: string
           nullable: true
@@ -497,6 +500,9 @@ components:
           type: string
           nullable: true
         contactLink:
+          type: string
+          nullable: true
+        adminContact:
           type: string
           nullable: true
         interestCategories:
@@ -551,6 +557,17 @@ components:
           nullable: true
         isPrivate:
           type: boolean
+        autoAccept:
+          type: boolean
+        priceParticipants:
+          type: integer
+          nullable: true
+        priceViewers:
+          type: integer
+          nullable: true
+        organizerLink:
+          type: string
+          nullable: true
         coverImageUrl:
           type: string
           nullable: true
@@ -573,6 +590,7 @@ components:
         - date
         - location
         - isPrivate
+        - autoAccept
         - status
         - applicationsCount
         - viewersCount
@@ -611,6 +629,14 @@ components:
           nullable: true
         isPrivate:
           type: boolean
+        autoAccept:
+          type: boolean
+        priceParticipants:
+          type: integer
+          nullable: true
+        priceViewers:
+          type: integer
+          nullable: true
         coverImageUrl:
           type: string
           nullable: true
@@ -655,6 +681,9 @@ components:
         status:
           type: string
           enum: [pending, approved, rejected]
+        attendanceStatus:
+          type: string
+          enum: [going, thinking, not_going]
         comment:
           type: string
           nullable: true
@@ -666,6 +695,7 @@ components:
         - userId
         - type
         - status
+        - attendanceStatus
         - createdAt
 
     ApplyRequest:
@@ -677,6 +707,9 @@ components:
         type:
           type: string
           enum: [participant, viewer]
+        attendanceStatus:
+          type: string
+          enum: [going, thinking, not_going]
         comment:
           type: string
           nullable: true
@@ -689,8 +722,9 @@ components:
         status:
           type: string
           enum: [approved, rejected]
-      required:
-        - status
+        attendanceStatus:
+          type: string
+          enum: [going, thinking, not_going]
 
     Car:
       type: object

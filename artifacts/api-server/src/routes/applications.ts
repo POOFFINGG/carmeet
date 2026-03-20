@@ -33,6 +33,7 @@ async function formatApplication(app: any) {
     carModel: car?.model || null,
     type: app.type,
     status: app.status,
+    attendanceStatus: app.attendanceStatus || "going",
     comment: app.comment,
     createdAt: app.createdAt.toISOString(),
   };
@@ -69,23 +70,40 @@ router.post("/events/:eventId/applications", async (req, res) => {
     return;
   }
 
-  const { carId, type, comment } = req.body;
+  const { carId, type, attendanceStatus, comment } = req.body;
   if (!type) {
     res.status(400).json({ error: "Missing type field" });
     return;
   }
 
   const existing = await db.select().from(applicationsTable).where(and(eq(applicationsTable.eventId, eventId), eq(applicationsTable.userId, userId))).limit(1);
+
   if (existing.length > 0) {
-    res.status(409).json({ error: "Already applied" });
+    const updated = await db
+      .update(applicationsTable)
+      .set({
+        type,
+        carId: carId || null,
+        attendanceStatus: attendanceStatus || "going",
+        comment: comment || null,
+      })
+      .where(eq(applicationsTable.id, existing[0].id))
+      .returning();
+    const result = await formatApplication(updated[0]);
+    res.json(result);
     return;
   }
+
+  const event = await db.select({ autoAccept: eventsTable.autoAccept }).from(eventsTable).where(eq(eventsTable.id, eventId)).limit(1);
+  const autoAccept = event[0]?.autoAccept ?? false;
 
   const inserted = await db.insert(applicationsTable).values({
     eventId,
     userId,
     carId: carId || null,
     type,
+    attendanceStatus: attendanceStatus || "going",
+    status: autoAccept ? "approved" : "pending",
     comment: comment || null,
   }).returning();
 
@@ -112,13 +130,23 @@ router.put("/events/:eventId/applications/:applicationId", async (req, res) => {
     res.status(404).json({ error: "Event not found" });
     return;
   }
-  if (event[0].organizerId !== userId) {
-    res.status(403).json({ error: "Forbidden" });
+
+  const { status, attendanceStatus } = req.body;
+  const updateData: any = {};
+
+  if (status && event[0].organizerId === userId) {
+    updateData.status = status;
+  }
+  if (attendanceStatus) {
+    updateData.attendanceStatus = attendanceStatus;
+  }
+
+  if (Object.keys(updateData).length === 0) {
+    res.status(400).json({ error: "No valid fields to update" });
     return;
   }
 
-  const { status } = req.body;
-  const updated = await db.update(applicationsTable).set({ status }).where(eq(applicationsTable.id, applicationId)).returning();
+  const updated = await db.update(applicationsTable).set(updateData).where(eq(applicationsTable.id, applicationId)).returning();
   if (updated.length === 0) {
     res.status(404).json({ error: "Application not found" });
     return;
@@ -135,13 +163,22 @@ router.delete("/events/:eventId/applications/:applicationId", async (req, res) =
     return;
   }
 
+  const eventId = parseInt(req.params.eventId);
   const applicationId = parseInt(req.params.applicationId);
   if (isNaN(applicationId)) {
     res.status(400).json({ error: "Invalid ID" });
     return;
   }
 
-  await db.delete(applicationsTable).where(and(eq(applicationsTable.id, applicationId), eq(applicationsTable.userId, userId)));
+  const event = await db.select({ organizerId: eventsTable.organizerId }).from(eventsTable).where(eq(eventsTable.id, eventId)).limit(1);
+  const isOrganizer = event[0]?.organizerId === userId;
+
+  if (isOrganizer) {
+    await db.delete(applicationsTable).where(eq(applicationsTable.id, applicationId));
+  } else {
+    await db.delete(applicationsTable).where(and(eq(applicationsTable.id, applicationId), eq(applicationsTable.userId, userId)));
+  }
+
   res.json({ success: true });
 });
 

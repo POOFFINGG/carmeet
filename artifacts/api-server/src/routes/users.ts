@@ -5,6 +5,24 @@ import { eq } from "drizzle-orm";
 
 const router: IRouter = Router();
 
+function formatUser(user: any) {
+  return {
+    id: user.id,
+    telegramId: user.telegramId,
+    username: user.username,
+    displayName: user.displayName,
+    avatarUrl: user.avatarUrl,
+    role: user.role,
+    organizationName: user.organizationName,
+    contactLink: user.contactLink,
+    adminContact: user.adminContact,
+    viewerSilhouette: user.viewerSilhouette,
+    interestCategories: user.interestCategories,
+    onboardingComplete: user.onboardingComplete,
+    createdAt: user.createdAt.toISOString(),
+  };
+}
+
 router.get("/users/me", async (req, res) => {
   const telegramId = req.headers["x-telegram-id"] as string;
   if (!telegramId) {
@@ -18,25 +36,11 @@ router.get("/users/me", async (req, res) => {
     return;
   }
 
-  const user = users[0];
-  res.json({
-    id: user.id,
-    telegramId: user.telegramId,
-    username: user.username,
-    displayName: user.displayName,
-    avatarUrl: user.avatarUrl,
-    role: user.role,
-    organizationName: user.organizationName,
-    contactLink: user.contactLink,
-    viewerSilhouette: user.viewerSilhouette,
-    interestCategories: user.interestCategories,
-    onboardingComplete: user.onboardingComplete,
-    createdAt: user.createdAt.toISOString(),
-  });
+  res.json(formatUser(users[0]));
 });
 
 router.post("/users/onboarding", async (req, res) => {
-  const { telegramId, username, displayName, avatarUrl, role, viewerSilhouette, organizationName, contactLink, interestCategories } = req.body;
+  const { telegramId, username, displayName, avatarUrl, role, viewerSilhouette, organizationName, contactLink, adminContact, interestCategories } = req.body;
 
   if (!telegramId || !username || !displayName || !role) {
     res.status(400).json({ error: "Missing required fields" });
@@ -57,6 +61,7 @@ router.post("/users/onboarding", async (req, res) => {
         viewerSilhouette: viewerSilhouette || null,
         organizationName: organizationName || null,
         contactLink: contactLink || null,
+        adminContact: adminContact || null,
         interestCategories: interestCategories || [],
         onboardingComplete: true,
         updatedAt: new Date(),
@@ -76,6 +81,7 @@ router.post("/users/onboarding", async (req, res) => {
         viewerSilhouette: viewerSilhouette || null,
         organizationName: organizationName || null,
         contactLink: contactLink || null,
+        adminContact: adminContact || null,
         interestCategories: interestCategories || [],
         onboardingComplete: true,
       })
@@ -83,20 +89,7 @@ router.post("/users/onboarding", async (req, res) => {
     user = inserted[0];
   }
 
-  res.json({
-    id: user.id,
-    telegramId: user.telegramId,
-    username: user.username,
-    displayName: user.displayName,
-    avatarUrl: user.avatarUrl,
-    role: user.role,
-    organizationName: user.organizationName,
-    contactLink: user.contactLink,
-    viewerSilhouette: user.viewerSilhouette,
-    interestCategories: user.interestCategories,
-    onboardingComplete: user.onboardingComplete,
-    createdAt: user.createdAt.toISOString(),
-  });
+  res.json(formatUser(user));
 });
 
 router.patch("/users/me", async (req, res) => {
@@ -106,13 +99,17 @@ router.patch("/users/me", async (req, res) => {
     return;
   }
 
-  const { role, interestCategories, organizationName, contactLink } = req.body;
+  const { role, interestCategories, organizationName, contactLink, adminContact, avatarUrl, displayName, viewerSilhouette } = req.body;
 
   const updateData: Record<string, unknown> = { updatedAt: new Date() };
   if (role !== undefined) updateData.role = role;
   if (interestCategories !== undefined) updateData.interestCategories = interestCategories;
   if (organizationName !== undefined) updateData.organizationName = organizationName;
   if (contactLink !== undefined) updateData.contactLink = contactLink;
+  if (adminContact !== undefined) updateData.adminContact = adminContact;
+  if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl;
+  if (displayName !== undefined) updateData.displayName = displayName;
+  if (viewerSilhouette !== undefined) updateData.viewerSilhouette = viewerSilhouette;
 
   const updated = await db
     .update(usersTable)
@@ -125,21 +122,7 @@ router.patch("/users/me", async (req, res) => {
     return;
   }
 
-  const user = updated[0];
-  res.json({
-    id: user.id,
-    telegramId: user.telegramId,
-    username: user.username,
-    displayName: user.displayName,
-    avatarUrl: user.avatarUrl,
-    role: user.role,
-    organizationName: user.organizationName,
-    contactLink: user.contactLink,
-    viewerSilhouette: user.viewerSilhouette,
-    interestCategories: user.interestCategories,
-    onboardingComplete: user.onboardingComplete,
-    createdAt: user.createdAt.toISOString(),
-  });
+  res.json(formatUser(updated[0]));
 });
 
 router.get("/users/:userId", async (req, res) => {
@@ -155,21 +138,7 @@ router.get("/users/:userId", async (req, res) => {
     return;
   }
 
-  const user = users[0];
-  res.json({
-    id: user.id,
-    telegramId: user.telegramId,
-    username: user.username,
-    displayName: user.displayName,
-    avatarUrl: user.avatarUrl,
-    role: user.role,
-    organizationName: user.organizationName,
-    contactLink: user.contactLink,
-    viewerSilhouette: user.viewerSilhouette,
-    interestCategories: user.interestCategories,
-    onboardingComplete: user.onboardingComplete,
-    createdAt: user.createdAt.toISOString(),
-  });
+  res.json(formatUser(users[0]));
 });
 
 export default router;

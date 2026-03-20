@@ -17,6 +17,7 @@ import Notifications from "@/pages/Notifications";
 import Settings from "@/pages/Settings";
 import EditCar from "@/pages/EditCar";
 import Admin from "@/pages/Admin";
+import ManageEvent from "@/pages/ManageEvent";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -64,6 +65,7 @@ function Router() {
       <Route path="/map" component={MapView} />
       <Route path="/events" component={Calendar} />
       <Route path="/events/create" component={CreateEvent} />
+      <Route path="/events/:id/manage" component={ManageEvent} />
       <Route path="/events/:id" component={EventDetail} />
       <Route path="/profile" component={Profile} />
       <Route path="/notifications" component={Notifications} />

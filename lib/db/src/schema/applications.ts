@@ -12,6 +12,7 @@ export const applicationsTable = pgTable("applications", {
   carId: integer("car_id").references(() => carsTable.id, { onDelete: "set null" }),
   type: text("type", { enum: ["participant", "viewer"] }).notNull(),
   status: text("status", { enum: ["pending", "approved", "rejected"] }).notNull().default("pending"),
+  attendanceStatus: text("attendance_status", { enum: ["going", "thinking", "not_going"] }).notNull().default("going"),
   comment: text("comment"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

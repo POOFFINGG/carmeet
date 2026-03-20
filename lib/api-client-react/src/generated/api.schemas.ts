@@ -37,6 +37,7 @@ export interface User {
   role: UserRole;
   organizationName?: string | null;
   contactLink?: string | null;
+  adminContact?: string | null;
   viewerSilhouette?: UserViewerSilhouette;
   interestCategories: string[];
   onboardingComplete: boolean;
@@ -72,6 +73,7 @@ export interface OnboardingRequest {
   viewerSilhouette?: OnboardingRequestViewerSilhouette;
   organizationName?: string | null;
   contactLink?: string | null;
+  adminContact?: string | null;
   interestCategories?: string[];
 }
 
@@ -109,6 +111,10 @@ export interface Event {
   lng?: number | null;
   maxParticipants?: number | null;
   isPrivate: boolean;
+  autoAccept: boolean;
+  priceParticipants?: number | null;
+  priceViewers?: number | null;
+  organizerLink?: string | null;
   coverImageUrl?: string | null;
   status: EventStatus;
   applicationsCount: number;
@@ -138,6 +144,9 @@ export interface CreateEventRequest {
   lng?: number | null;
   maxParticipants?: number | null;
   isPrivate: boolean;
+  autoAccept?: boolean;
+  priceParticipants?: number | null;
+  priceViewers?: number | null;
   coverImageUrl?: string | null;
 }
 
@@ -158,6 +167,15 @@ export const ApplicationStatus = {
   rejected: "rejected",
 } as const;
 
+export type ApplicationAttendanceStatus =
+  (typeof ApplicationAttendanceStatus)[keyof typeof ApplicationAttendanceStatus];
+
+export const ApplicationAttendanceStatus = {
+  going: "going",
+  thinking: "thinking",
+  not_going: "not_going",
+} as const;
+
 export interface Application {
   id: number;
   eventId: number;
@@ -170,6 +188,7 @@ export interface Application {
   carModel?: string | null;
   type: ApplicationType;
   status: ApplicationStatus;
+  attendanceStatus: ApplicationAttendanceStatus;
   comment?: string | null;
   createdAt: string;
 }
@@ -185,6 +204,7 @@ export const ApplyRequestType = {
 export interface ApplyRequest {
   carId?: number | null;
   type: ApplyRequestType;
+  attendanceStatus?: ApplicationAttendanceStatus;
   comment?: string | null;
 }
 
@@ -197,7 +217,8 @@ export const UpdateApplicationRequestStatus = {
 } as const;
 
 export interface UpdateApplicationRequest {
-  status: UpdateApplicationRequestStatus;
+  status?: UpdateApplicationRequestStatus;
+  attendanceStatus?: ApplicationAttendanceStatus;
 }
 
 export interface Car {
@@ -209,6 +230,7 @@ export interface Car {
   color?: string | null;
   photoUrl?: string | null;
   aiStyledImageUrl?: string | null;
+  aiStatus?: string;
   categories: string[];
   isPrimary: boolean;
   createdAt: string;

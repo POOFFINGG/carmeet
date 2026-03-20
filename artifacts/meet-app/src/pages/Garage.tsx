@@ -13,31 +13,28 @@ function NFSBackground() {
   return (
     <>
       <style>{`
-        @keyframes nfs-flicker {
+        @keyframes mw-lamp {
           0%,100% { opacity:1 }
+          82%      { opacity:1 }
+          83%      { opacity:0.88 }
+          84%      { opacity:1 }
+          91%      { opacity:0.94 }
           92%      { opacity:1 }
-          93%      { opacity:0.55 }
-          94%      { opacity:1 }
-          96%      { opacity:0.7 }
-          97%      { opacity:1 }
         }
-        @keyframes nfs-pulse {
-          0%,100% { opacity:0.55 }
-          50%      { opacity:0.9 }
+        @keyframes mw-dust {
+          0%   { opacity:0; transform:translateY(0) translateX(0); }
+          20%  { opacity:0.5; }
+          100% { opacity:0; transform:translateY(-60px) translateX(12px); }
         }
-        @keyframes nfs-scanline {
-          0%   { transform: translateY(-100%) }
-          100% { transform: translateY(100vh) }
-        }
-        .nfs-neon-left  { animation: nfs-flicker 7s infinite; }
-        .nfs-neon-right { animation: nfs-flicker 7s 0.3s infinite; }
-        .nfs-glow-pulse { animation: nfs-pulse 3s ease-in-out infinite; }
+        .mw-lamp { animation: mw-lamp 9s infinite; }
+        .mw-dust-a { animation: mw-dust 5s 0s infinite; }
+        .mw-dust-b { animation: mw-dust 6s 1.8s infinite; }
+        .mw-dust-c { animation: mw-dust 4.5s 3.2s infinite; }
       `}</style>
 
-      {/* Base: very dark purple-black */}
-      <div className="absolute inset-0" style={{ background: "#04000c" }} />
+      {/* Base */}
+      <div className="absolute inset-0" style={{ background: "#0b0b08" }} />
 
-      {/* SVG scene */}
       <svg
         className="absolute inset-0 w-full h-full"
         viewBox="0 0 390 844"
@@ -45,224 +42,322 @@ function NFSBackground() {
         xmlns="http://www.w3.org/2000/svg"
       >
         <defs>
-          {/* Purple neon glow filter */}
-          <filter id="neon-glow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="4" result="blur1" />
-            <feGaussianBlur stdDeviation="12" result="blur2" in="SourceGraphic" />
-            <feMerge>
-              <feMergeNode in="blur2" />
-              <feMergeNode in="blur1" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-          <filter id="neon-glow-sm" x="-80%" y="-80%" width="260%" height="260%">
-            <feGaussianBlur stdDeviation="3" result="b" />
-            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
-          <filter id="floor-glow" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="18" />
-          </filter>
-          <filter id="ambient" x="-30%" y="-30%" width="160%" height="160%">
-            <feGaussianBlur stdDeviation="35" />
-          </filter>
-
-          {/* Perspective floor gradient */}
-          <linearGradient id="floor-grad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#0e0020" />
-            <stop offset="60%" stopColor="#07000f" />
-            <stop offset="100%" stopColor="#030008" />
-          </linearGradient>
-
-          {/* Ceiling gradient */}
-          <linearGradient id="ceil-grad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#080015" />
-            <stop offset="100%" stopColor="#04000c" />
-          </linearGradient>
-
-          {/* Left wall gradient */}
-          <linearGradient id="wall-left" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#060012" />
-            <stop offset="100%" stopColor="#04000c" />
-          </linearGradient>
-
-          {/* Right wall gradient */}
-          <linearGradient id="wall-right" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#04000c" />
-            <stop offset="100%" stopColor="#060012" />
-          </linearGradient>
-
-          {/* Floor reflection gradient */}
-          <linearGradient id="reflect-left" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#9900ff" stopOpacity="0.25" />
-            <stop offset="100%" stopColor="#9900ff" stopOpacity="0" />
-          </linearGradient>
-          <linearGradient id="reflect-right" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#00ccff" stopOpacity="0.2" />
-            <stop offset="100%" stopColor="#00ccff" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-
-        {/* ── CEILING ── */}
-        <polygon points="0,0 390,0 255,340 135,340" fill="url(#ceil-grad)" />
-
-        {/* ── LEFT WALL ── */}
-        <polygon points="0,0 135,340 0,844" fill="url(#wall-left)" />
-
-        {/* ── RIGHT WALL ── */}
-        <polygon points="390,0 255,340 390,844" fill="url(#wall-right)" />
-
-        {/* ── FLOOR ── */}
-        <polygon points="135,340 255,340 390,844 0,844" fill="url(#floor-grad)" />
-
-        {/* ── Perspective grid lines on floor ── */}
-        {/* Vanishing point: (195, 340) */}
-        {[0.18, 0.34, 0.52, 0.7].map((t, i) => {
-          const lx = t * 390;
-          const rx = 390 - t * 390;
-          const yBot = 844;
-          const vx = 195, vy = 340;
-          return (
-            <g key={i} opacity={0.07 + i * 0.015}>
-              <line x1={vx} y1={vy} x2={lx} y2={yBot} stroke="#9944ff" strokeWidth="1" />
-              <line x1={vx} y1={vy} x2={rx} y2={yBot} stroke="#9944ff" strokeWidth="1" />
-            </g>
-          );
-        })}
-
-        {/* Horizontal floor grid lines */}
-        {[0.18, 0.36, 0.56, 0.78].map((t, i) => {
-          const y = 340 + t * (844 - 340);
-          const spread = t * 195;
-          const lx = 195 - spread;
-          const rx = 195 + spread;
-          return (
-            <line key={i} x1={lx} y1={y} x2={rx} y2={y}
-              stroke="#9944ff" strokeWidth="0.8" opacity={0.06 + i * 0.02} />
-          );
-        })}
-
-        {/* ── Perspective grid on ceiling ── */}
-        {[0.2, 0.42, 0.64].map((t, i) => {
-          const lx = t * 195;
-          const rx = 390 - lx;
-          return (
-            <g key={i} opacity={0.05 + i * 0.01}>
-              <line x1={195} y1={340} x2={lx} y2={0} stroke="#6600cc" strokeWidth="0.8" />
-              <line x1={195} y1={340} x2={rx} y2={0} stroke="#6600cc" strokeWidth="0.8" />
-            </g>
-          );
-        })}
-
-        {/* ── Ceiling neon strip (left) — PURPLE ── */}
-        <g className="nfs-neon-left" filter="url(#neon-glow)">
-          <line x1="0" y1="2" x2="135" y2="340" stroke="#cc44ff" strokeWidth="2.5" />
-          <line x1="0" y1="2" x2="135" y2="340" stroke="#aa00ff" strokeWidth="1" opacity="0.9" />
-        </g>
-
-        {/* ── Ceiling neon strip (right) — CYAN ── */}
-        <g className="nfs-neon-right" filter="url(#neon-glow)">
-          <line x1="390" y1="2" x2="255" y2="340" stroke="#44ccff" strokeWidth="2.5" />
-          <line x1="390" y1="2" x2="255" y2="340" stroke="#0099ee" strokeWidth="1" opacity="0.9" />
-        </g>
-
-        {/* ── Wall neon strip (left wall, horizontal at mid-height) ── */}
-        <g className="nfs-neon-left">
-          <line x1="2" y1="422" x2="75" y2="422" stroke="#cc44ff" strokeWidth="1.5" filter="url(#neon-glow-sm)" />
-          <line x1="2" y1="422" x2="75" y2="422" stroke="#ffffff" strokeWidth="0.5" opacity="0.6" />
-          {/* Second strip lower */}
-          <line x1="2" y1="590" x2="42" y2="590" stroke="#cc44ff" strokeWidth="1.5" filter="url(#neon-glow-sm)" />
-        </g>
-
-        {/* ── Wall neon strip (right wall) ── */}
-        <g className="nfs-neon-right">
-          <line x1="388" y1="422" x2="315" y2="422" stroke="#44ccff" strokeWidth="1.5" filter="url(#neon-glow-sm)" />
-          <line x1="388" y1="422" x2="315" y2="422" stroke="#ffffff" strokeWidth="0.5" opacity="0.6" />
-          <line x1="388" y1="590" x2="348" y2="590" stroke="#44ccff" strokeWidth="1.5" filter="url(#neon-glow-sm)" />
-        </g>
-
-        {/* ── Pillars (left) ── */}
-        <polygon points="0,0 18,0 85,340 66,340" fill="#0a001a" opacity="0.9" />
-        <line x1="18" y1="0" x2="85" y2="340" stroke="#9900ff" strokeWidth="1.2" opacity="0.5" filter="url(#neon-glow-sm)" />
-
-        {/* ── Pillars (right) ── */}
-        <polygon points="390,0 372,0 305,340 324,340" fill="#0a001a" opacity="0.9" />
-        <line x1="372" y1="0" x2="305" y2="340" stroke="#00aaff" strokeWidth="1.2" opacity="0.5" filter="url(#neon-glow-sm)" />
-
-        {/* ── Floor neon edge lines ── */}
-        {/* Left floor edge neon */}
-        <g className="nfs-neon-left">
-          <line x1="135" y1="340" x2="0" y2="844" stroke="#9900ff" strokeWidth="1.8" filter="url(#neon-glow-sm)" opacity="0.85" />
-          <line x1="135" y1="340" x2="0" y2="844" stroke="#ffffff" strokeWidth="0.4" opacity="0.5" />
-        </g>
-
-        {/* Right floor edge neon */}
-        <g className="nfs-neon-right">
-          <line x1="255" y1="340" x2="390" y2="844" stroke="#00ccff" strokeWidth="1.8" filter="url(#neon-glow-sm)" opacity="0.85" />
-          <line x1="255" y1="340" x2="390" y2="844" stroke="#ffffff" strokeWidth="0.4" opacity="0.5" />
-        </g>
-
-        {/* ── Floor neon reflection strips (wet concrete effect) ── */}
-        {/* Left reflection */}
-        <g className="nfs-neon-left" opacity="0.5">
-          <line x1="135" y1="345" x2="0" y2="849" stroke="#9900ff" strokeWidth="8" filter="url(#floor-glow)" opacity="0.3" />
-        </g>
-        {/* Right reflection */}
-        <g className="nfs-neon-right" opacity="0.5">
-          <line x1="255" y1="345" x2="390" y2="849" stroke="#00ccff" strokeWidth="8" filter="url(#floor-glow)" opacity="0.25" />
-        </g>
-
-        {/* ── Ambient purple glow at vanishing point ── */}
-        <ellipse cx="195" cy="330" rx="180" ry="120" fill="#8800cc" opacity="0.1" filter="url(#ambient)" className="nfs-glow-pulse" />
-        <ellipse cx="195" cy="330" rx="80" ry="50" fill="#aa44ff" opacity="0.15" filter="url(#ambient)" />
-
-        {/* ── Ceiling center neon seam ── */}
-        <g className="nfs-neon-left" filter="url(#neon-glow)">
-          <line x1="195" y1="0" x2="195" y2="340" stroke="#cc44ff" strokeWidth="1" opacity="0.4" />
-        </g>
-
-        {/* ── Floor center neon seam ── */}
-        <g className="nfs-neon-right" filter="url(#neon-glow-sm)">
-          <line x1="195" y1="340" x2="195" y2="844" stroke="#6622aa" strokeWidth="1" opacity="0.35" />
-        </g>
-
-        {/* ── Horizontal ceiling bands ── */}
-        {[80, 160, 240].map((y, i) => {
-          const t = y / 340;
-          const half = t * 130;
-          const lx = 195 - half - (1 - t) * 195;
-          const rx = 195 + half + (1 - t) * 195;
-          return (
-            <line key={i} x1={lx} y1={y} x2={rx} y2={y}
-              stroke="#5500aa" strokeWidth="0.7" opacity={0.12 - i * 0.03} />
-          );
-        })}
-
-        {/* ── Scanline vignette overlay ── */}
-        <rect width="390" height="844"
-          fill="none"
-          stroke="transparent"
-          style={{
-            background: "repeating-linear-gradient(0deg, rgba(0,0,0,0.03) 0px, rgba(0,0,0,0.03) 1px, transparent 1px, transparent 3px)"
-          }}
-          opacity="0.5"
-        />
-
-        {/* ── Corner darkness vignette ── */}
-        <defs>
-          <radialGradient id="vignette" cx="50%" cy="50%" r="70%">
-            <stop offset="30%" stopColor="transparent" />
-            <stop offset="100%" stopColor="#000000" stopOpacity="0.75" />
+          {/* Main spotlight from lamp */}
+          <radialGradient id="g-lamp" cx="50%" cy="0%" r="75%" fx="50%" fy="2%">
+            <stop offset="0%"   stopColor="#d4aa60" stopOpacity="0.45" />
+            <stop offset="30%"  stopColor="#a07838" stopOpacity="0.18" />
+            <stop offset="70%"  stopColor="#604520" stopOpacity="0.06" />
+            <stop offset="100%" stopColor="#000000" stopOpacity="0" />
           </radialGradient>
+
+          {/* Floor gradient */}
+          <linearGradient id="g-floor" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor="#242118" />
+            <stop offset="40%"  stopColor="#1a1813" />
+            <stop offset="100%" stopColor="#0d0c09" />
+          </linearGradient>
+
+          {/* Floor center light patch */}
+          <radialGradient id="g-floor-light" cx="50%" cy="5%" r="65%">
+            <stop offset="0%"   stopColor="#9a7830" stopOpacity="0.22" />
+            <stop offset="55%"  stopColor="#604820" stopOpacity="0.07" />
+            <stop offset="100%" stopColor="#000000" stopOpacity="0" />
+          </radialGradient>
+
+          {/* Back wall gradient */}
+          <linearGradient id="g-wall" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor="#252420" />
+            <stop offset="100%" stopColor="#1a1916" />
+          </linearGradient>
+
+          {/* Left wall (side) */}
+          <linearGradient id="g-wl" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%"   stopColor="#0d0c0a" />
+            <stop offset="100%" stopColor="#1a1916" />
+          </linearGradient>
+
+          {/* Right wall (side) */}
+          <linearGradient id="g-wr" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%"   stopColor="#1a1916" />
+            <stop offset="100%" stopColor="#0d0c0a" />
+          </linearGradient>
+
+          {/* Ceiling */}
+          <linearGradient id="g-ceil" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor="#131210" />
+            <stop offset="100%" stopColor="#0f0e0c" />
+          </linearGradient>
+
+          {/* Vignette */}
+          <radialGradient id="g-vig" cx="50%" cy="48%" r="62%">
+            <stop offset="20%"  stopColor="transparent" />
+            <stop offset="100%" stopColor="#000000" stopOpacity="0.92" />
+          </radialGradient>
+
+          {/* Soft blur */}
+          <filter id="f-soft" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="22" />
+          </filter>
+          <filter id="f-med"  x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="8" />
+          </filter>
         </defs>
-        <rect width="390" height="844" fill="url(#vignette)" />
+
+        {/* ═══ BASE FILL ═══ */}
+        <rect width="390" height="844" fill="#0b0b08" />
+
+        {/* ═══ GEOMETRY: ceiling / walls / floor ═══ */}
+        {/* VP at (195, 310) */}
+
+        {/* Ceiling trapezoid */}
+        <polygon points="0,0 390,0 300,310 90,310" fill="url(#g-ceil)" />
+
+        {/* Left side wall */}
+        <polygon points="0,0 90,310 0,844" fill="url(#g-wl)" />
+
+        {/* Right side wall */}
+        <polygon points="390,0 300,310 390,844" fill="url(#g-wr)" />
+
+        {/* Back wall (center trapezoid going to horizon) */}
+        <polygon points="30,0 360,0 300,310 90,310" fill="url(#g-wall)" />
+
+        {/* Floor */}
+        <polygon points="0,310 390,310 390,844 0,844" fill="url(#g-floor)" />
+
+        {/* ═══ BACK WALL DETAILS ═══ */}
+
+        {/* Horizontal panel seams */}
+        {[55, 120, 185, 248, 295].map((y, i) => {
+          const shrink = y / 310;
+          const x1 = 30 + shrink * 165;
+          const x2 = 360 - shrink * 165;
+          return (
+            <line key={i} x1={x1} y1={y} x2={x2} y2={y}
+              stroke="#2e2c26" strokeWidth={1.5 - i * 0.18} opacity={0.7 - i * 0.06} />
+          );
+        })}
+
+        {/* Vertical corrugation lines on back wall */}
+        {[-2, -1, 0, 1, 2].map((off, i) => {
+          const bx = 195 + off * 52;
+          const tx = 195 + off * 68;
+          return (
+            <line key={i} x1={bx} y1={310} x2={tx} y2={0}
+              stroke="#232118" strokeWidth="1" opacity={0.5 - Math.abs(off) * 0.08} />
+          );
+        })}
+
+        {/* Large graffiti X mark on wall — very dark */}
+        <g opacity="0.35" transform="translate(68,100) rotate(-8)">
+          <line x1="0" y1="0" x2="28" y2="38" stroke="#1e1d1a" strokeWidth="6" strokeLinecap="round" />
+          <line x1="28" y1="0" x2="0" y2="38" stroke="#1e1d1a" strokeWidth="6" strokeLinecap="round" />
+        </g>
+        {/* Spray marks right side */}
+        <g opacity="0.25" transform="translate(280,160)">
+          <line x1="0" y1="0" x2="22" y2="0" stroke="#201f1c" strokeWidth="4" strokeLinecap="round" />
+          <line x1="0" y1="9" x2="18" y2="9" stroke="#201f1c" strokeWidth="4" strokeLinecap="round" />
+          <line x1="0" y1="18" x2="22" y2="18" stroke="#201f1c" strokeWidth="4" strokeLinecap="round" />
+        </g>
+
+        {/* Warning tape strip at floor-wall junction */}
+        {Array.from({ length: 14 }).map((_, i) => (
+          <rect key={i} x={i * 28} y={307} width="14" height="5"
+            fill="#3a3010" opacity="0.6" />
+        ))}
+
+        {/* ═══ CEILING ELEMENTS ═══ */}
+
+        {/* Main horizontal duct (fat, center-left) */}
+        <rect x="0" y="8" width="260" height="26" fill="#232220" rx="2" />
+        <rect x="0" y="8" width="260" height="3" fill="#302e28" opacity="0.7" />
+        <rect x="0" y="31" width="260" height="3" fill="#141310" opacity="0.9" />
+
+        {/* Second duct (right, thinner) */}
+        <rect x="180" y="44" width="210" height="18" fill="#1e1d1b" rx="2" />
+        <rect x="180" y="44" width="210" height="2" fill="#2a2926" opacity="0.7" />
+        <rect x="180" y="60" width="210" height="2" fill="#111110" opacity="0.9" />
+
+        {/* Small pipe cross-brace */}
+        <rect x="120" y="70" width="150" height="10" fill="#1b1a18" rx="1" />
+
+        {/* Perspective pipes going to VP */}
+        {[
+          { x1: 72,  y1: 0, x2: 95,  y2: 310, w: 10 },
+          { x1: 318, y1: 0, x2: 295, y2: 310, w: 10 },
+          { x1: 38,  y1: 0, x2: 125, y2: 310, w: 7  },
+          { x1: 352, y1: 0, x2: 265, y2: 310, w: 7  },
+        ].map((p, i) => (
+          <g key={i}>
+            <line x1={p.x1} y1={p.y1} x2={p.x2} y2={p.y2}
+              stroke="#252421" strokeWidth={p.w} strokeLinecap="square" />
+            <line x1={p.x1} y1={p.y1} x2={p.x2} y2={p.y2}
+              stroke="#181714" strokeWidth={p.w * 0.35} strokeLinecap="square"
+              strokeDasharray="0" opacity="0.8" />
+          </g>
+        ))}
+
+        {/* ═══ LAMP FIXTURE ═══ */}
+        <g className="mw-lamp">
+          {/* Hanging cable */}
+          <line x1="195" y1="0" x2="195" y2="32" stroke="#1a1916" strokeWidth="3" />
+          {/* Lamp housing */}
+          <rect x="171" y="32" width="48" height="16" fill="#2a2824" rx="3" />
+          <rect x="175" y="48" width="40" height="10" fill="#232120" rx="2" />
+          {/* Bulb glow */}
+          <ellipse cx="195" cy="58" rx="10" ry="5" fill="#d4aa60" opacity="0.9" />
+          <ellipse cx="195" cy="58" rx="18" ry="9" fill="#c09040" opacity="0.4" filter="url(#f-med)" />
+          {/* Light cone */}
+          <polygon points="175,58 80,390 310,390" fill="url(#g-lamp)" />
+          {/* Soft secondary cone */}
+          <ellipse cx="195" cy="370" rx="130" ry="35"
+            fill="#c09040" opacity="0.07" filter="url(#f-soft)" />
+        </g>
+
+        {/* ═══ FLOOR DETAILS ═══ */}
+
+        {/* Floor perspective lines */}
+        {[-3.2, -2.2, -1.2, 0, 1.2, 2.2, 3.2].map((m, i) => (
+          <line key={i}
+            x1={195} y1={310}
+            x2={195 + m * 65} y2={844}
+            stroke="#2a2820" strokeWidth="0.8" opacity="0.5" />
+        ))}
+
+        {/* Horizontal floor grid */}
+        {[0.12, 0.26, 0.44, 0.64, 0.85].map((t, i) => {
+          const y = 310 + t * 534;
+          const s = t * 195;
+          return (
+            <line key={i} x1={195 - s} y1={y} x2={195 + s} y2={y}
+              stroke="#282620" strokeWidth="0.7" opacity={0.35 + i * 0.06} />
+          );
+        })}
+
+        {/* Oil/grease stains */}
+        <ellipse cx="160" cy="510" rx="32" ry="11" fill="#080807" opacity="0.65" />
+        <ellipse cx="245" cy="620" rx="24" ry="9"  fill="#090907" opacity="0.55" />
+        <ellipse cx="195" cy="730" rx="42" ry="14" fill="#070706" opacity="0.7"  />
+        <ellipse cx="120" cy="700" rx="18" ry="6"  fill="#080807" opacity="0.45" />
+
+        {/* Floor light reflection */}
+        <rect x="0" y="310" width="390" height="534" fill="url(#g-floor-light)" />
+
+        {/* ═══ LEFT SIDE — Shelves & Barrels ═══ */}
+
+        {/* Metal cabinet */}
+        <rect x="0" y="190" width="62" height="140" fill="#181714" rx="1" />
+        <rect x="3" y="193" width="56" height="134" fill="#1c1b18" rx="1" />
+        {[220, 252, 284].map((y, i) => (
+          <line key={i} x1="3" y1={y} x2="59" y2={y} stroke="#232120" strokeWidth="1.5" opacity="0.9" />
+        ))}
+        {/* Items on shelves */}
+        <rect x="6"  y="196" width="14" height="21" fill="#201f1c" opacity="0.9" rx="1" />
+        <rect x="23" y="198" width="18" height="19" fill="#1e1d1a" opacity="0.9" rx="1" />
+        <rect x="44" y="200" width="12" height="17" fill="#1f1e1b" opacity="0.9" rx="1" />
+        <rect x="6"  y="228" width="22" height="18" fill="#1d1c1a" opacity="0.8" />
+        <rect x="32" y="230" width="16" height="16" fill="#1e1d1b" opacity="0.8" />
+        <rect x="6"  y="258" width="10" height="20" fill="#1f1e1c" opacity="0.8" />
+        <rect x="20" y="260" width="14" height="18" fill="#1e1d1b" opacity="0.8" />
+
+        {/* Workbench */}
+        <rect x="0" y="340" width="75" height="9" fill="#28261e" rx="1" />
+        <rect x="0" y="349" width="75" height="55" fill="#1c1b18" />
+        <rect x="4"  y="404" width="8"  height="90" fill="#181714" />
+        <rect x="63" y="404" width="8"  height="90" fill="#181714" />
+        {/* Tool on bench */}
+        <rect x="8"  y="337" width="30" height="4" fill="#222018" rx="2" />
+        <rect x="42" y="334" width="22" height="7" fill="#201f1c" rx="1" />
+
+        {/* Barrel pair */}
+        <g>
+          <ellipse cx="32" cy="495" rx="30" ry="12" fill="#191816" />
+          <rect x="2" y="450" width="60" height="47" fill="#191816" />
+          <ellipse cx="32" cy="450" rx="30" ry="11" fill="#222018" />
+          {[465, 480].map((y, i) => (
+            <line key={i} x1="2" y1={y} x2="62" y2={y} stroke="#252320" strokeWidth="2.5" opacity="0.8" />
+          ))}
+          {/* Text stencil */}
+          <text x="10" y="474" fontSize="8" fill="#141312" fontFamily="monospace" fontWeight="bold">OIL</text>
+        </g>
+
+        {/* ═══ RIGHT SIDE — Tire stacks ═══ */}
+
+        {/* Stack 1 — 4 tires */}
+        {[3, 2, 1, 0].map((i) => {
+          const by = 182 + i * 30;
+          return (
+            <g key={i}>
+              <ellipse cx="365" cy={by + 15} rx="27" ry="10" fill="#111110" />
+              <rect x="338" y={by} width="54" height="20" fill="#161513" />
+              <ellipse cx="365" cy={by} rx="27" ry="10" fill="#1c1b18" />
+              <ellipse cx="365" cy={by} rx="14" ry="5"  fill="#0e0d0c" />
+            </g>
+          );
+        })}
+
+        {/* Stack 2 — 3 tires, leaning */}
+        {[2, 1, 0].map((i) => {
+          const by = 318 + i * 24;
+          return (
+            <g key={i} transform={`rotate(${-10 + i * 4} 352 380)`}>
+              <ellipse cx="352" cy={by + 12} rx="23" ry="8" fill="#101010" />
+              <rect x="329" y={by} width="46" height="17" fill="#141312" />
+              <ellipse cx="352" cy={by} rx="23" ry="8" fill="#191817" />
+              <ellipse cx="352" cy={by} rx="12" ry="4" fill="#0d0d0c" />
+            </g>
+          );
+        })}
+
+        {/* Single tire leaning against wall */}
+        <ellipse cx="330" cy="420" rx="6" ry="25" fill="#161513" transform="rotate(15 330 420)" />
+        <ellipse cx="330" cy="420" rx="18" ry="24" fill="#161513" transform="rotate(15 330 420)" />
+        <ellipse cx="330" cy="420" rx="8"  ry="11" fill="#0d0d0b" transform="rotate(15 330 420)" />
+
+        {/* Tool cabinet right */}
+        <rect x="328" y="450" width="62" height="110" fill="#161513" rx="1" />
+        <rect x="331" y="453" width="56" height="104" fill="#191816" rx="1" />
+        {[480, 508, 536].map((y, i) => (
+          <line key={i} x1="331" y1={y} x2="387" y2={y} stroke="#222018" strokeWidth="1.5" />
+        ))}
+        {/* Drawer handles */}
+        {[493, 521].map((y, i) => (
+          <rect key={i} x="353" y={y} width="20" height="3" fill="#282520" rx="1" opacity="0.9" />
+        ))}
+
+        {/* ═══ DUST PARTICLES in light beam ═══ */}
+        <g className="mw-dust-a">
+          <circle cx="182" cy="270" r="1.5" fill="#c8a050" opacity="0.5" />
+          <circle cx="208" cy="230" r="1"   fill="#c0a048" opacity="0.4" />
+          <circle cx="195" cy="310" r="1.2" fill="#b89040" opacity="0.35" />
+        </g>
+        <g className="mw-dust-b">
+          <circle cx="175" cy="290" r="1.2" fill="#c0a048" opacity="0.45" />
+          <circle cx="215" cy="260" r="1.5" fill="#b89040" opacity="0.3" />
+        </g>
+        <g className="mw-dust-c">
+          <circle cx="200" cy="240" r="1"   fill="#c8a850" opacity="0.4" />
+          <circle cx="188" cy="300" r="0.8" fill="#b89040" opacity="0.3" />
+          <circle cx="210" cy="280" r="1.3" fill="#c09848" opacity="0.35" />
+        </g>
+
+        {/* ═══ VIGNETTE ═══ */}
+        <rect width="390" height="844" fill="url(#g-vig)" />
+
+        {/* Hard corner shadows */}
+        <polygon points="0,0 140,0 0,360"   fill="#000" opacity="0.55" />
+        <polygon points="390,0 250,0 390,360" fill="#000" opacity="0.55" />
+        <polygon points="0,844 0,580 110,844"   fill="#000" opacity="0.65" />
+        <polygon points="390,844 390,580 280,844" fill="#000" opacity="0.65" />
       </svg>
 
-      {/* Scanlines overlay (CSS) */}
+      {/* Film grain */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          backgroundImage: "repeating-linear-gradient(0deg, rgba(0,0,0,0.04) 0px, rgba(0,0,0,0.04) 1px, transparent 1px, transparent 4px)",
-          zIndex: 1,
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+          backgroundSize: "160px 160px",
+          opacity: 0.045,
+          mixBlendMode: "overlay",
         }}
       />
     </>
@@ -371,7 +466,7 @@ export default function Garage() {
               src={carDisplayUrl}
               alt="My Car"
               className="w-full max-h-[44vh] object-contain transition-opacity duration-300"
-              style={{ filter: "drop-shadow(0 8px 32px rgba(153,0,255,0.35)) drop-shadow(0 2px 12px rgba(0,170,255,0.2))" }}
+              style={{ filter: "drop-shadow(0 12px 40px rgba(0,0,0,0.85)) drop-shadow(0 4px 16px rgba(160,120,40,0.25))" }}
               onError={(e) => {
                 (e.target as HTMLImageElement).src = `${import.meta.env.BASE_URL}images/default-car.png`;
               }}

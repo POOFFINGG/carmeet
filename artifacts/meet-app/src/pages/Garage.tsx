@@ -120,7 +120,7 @@ export default function Garage() {
 
         {/* Car image — centered within the garage panel */}
         {!carsLoading && (activeCar || user?.role !== "viewer") ? (
-          <div className="absolute inset-0 flex items-center justify-center px-4">
+          <div className="absolute inset-0 flex items-center justify-center px-4 pt-16">
             <div className="relative w-full">
               <img
                 key={activeCar?.id}

@@ -13,20 +13,29 @@ function NFSBackground() {
   return (
     <>
 
-      {/* Photo background */}
-      <img
-        src={`${import.meta.env.BASE_URL}garage-bg.png`}
-        alt=""
-        aria-hidden
-        className="absolute inset-0 w-full h-full"
-        style={{ objectFit: "cover", objectPosition: "center 55%" }}
-      />
+      {/* Photo background — shifted up so floor aligns with where the car sits */}
+      <div className="absolute inset-0 overflow-hidden">
+        <img
+          src={`${import.meta.env.BASE_URL}garage-bg.png`}
+          alt=""
+          aria-hidden
+          style={{
+            position: "absolute",
+            left: 0,
+            width: "100%",
+            height: "135%",
+            top: "-30%",
+            objectFit: "cover",
+            objectPosition: "center center",
+          }}
+        />
+      </div>
 
-      {/* Dark overlay — keeps top UI readable, fades out toward the car zone */}
+      {/* Dark overlay — top readable, opens up toward the car+floor zone */}
       <div
         className="absolute inset-0"
         style={{
-          background: "linear-gradient(to bottom, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.35) 40%, rgba(0,0,0,0.18) 65%, rgba(0,0,0,0.55) 100%)",
+          background: "linear-gradient(to bottom, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.30) 35%, rgba(0,0,0,0.10) 55%, rgba(0,0,0,0.50) 100%)",
           zIndex: 1,
         }}
       />
@@ -35,7 +44,7 @@ function NFSBackground() {
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: "radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.6) 100%)",
+          background: "radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.65) 100%)",
           zIndex: 2,
         }}
       />
@@ -136,8 +145,8 @@ export default function Garage() {
         </button>
       </div>
 
-      {/* ── Car image — center ── */}
-      <div className="relative z-10 flex-1 flex items-center justify-center px-4 py-4">
+      {/* ── Car image — anchored to floor ── */}
+      <div className="relative z-10 flex-1 flex items-end justify-center px-4 pb-2">
         {!carsLoading && (activeCar || user?.role !== "viewer") ? (
           <div className="relative w-full">
             <img

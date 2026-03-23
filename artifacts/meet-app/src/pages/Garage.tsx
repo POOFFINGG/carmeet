@@ -254,7 +254,7 @@ export default function Garage() {
               <Link href="/profile" className="text-xs text-primary font-bold">Все</Link>
             </div>
             <div className="flex flex-col gap-2">
-              {apps.slice(0, 1).map(app => (
+              {apps.slice(0, 2).map(app => (
                 <div key={app.id} className="bg-white/5 backdrop-blur-xl rounded-2xl p-3.5 flex items-center justify-between border border-white/8">
                   <div className="min-w-0 flex-1">
                     <h4 className="font-bold text-white text-sm truncate">{app.eventTitle || "Событие"}</h4>

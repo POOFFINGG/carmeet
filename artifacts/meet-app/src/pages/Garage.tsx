@@ -97,10 +97,10 @@ export default function Garage() {
       </div>
 
       {/* ── Center block: garage panel + info ── */}
-      <div className="flex-1 flex flex-col justify-center pb-20">
+      <div className="flex-1 flex flex-col pb-20">
 
       {/* ── Garage panel — contained background with car inside ── */}
-      <div className="relative mx-0 overflow-hidden flex-shrink-0" style={{ height: "310px" }}>
+      <div className="relative mx-0 mt-3 overflow-hidden flex-shrink-0" style={{ height: "310px" }}>
         {/* Garage photo */}
         <img
           src={`${import.meta.env.BASE_URL}garage-bg.png?v=2`}

@@ -96,8 +96,11 @@ export default function Garage() {
         </button>
       </div>
 
+      {/* ── Center block: garage panel + info ── */}
+      <div className="flex-1 flex flex-col justify-center pb-20">
+
       {/* ── Garage panel — contained background with car inside ── */}
-      <div className="relative mx-0 mt-3 overflow-hidden flex-shrink-0" style={{ height: "310px" }}>
+      <div className="relative mx-0 overflow-hidden flex-shrink-0" style={{ height: "310px" }}>
         {/* Garage photo */}
         <img
           src={`${import.meta.env.BASE_URL}garage-bg.png`}
@@ -155,7 +158,7 @@ export default function Garage() {
       </div>
 
       {/* ── Bottom info ── */}
-      <div className="flex-1 px-5 pt-4 pb-28">
+      <div className="px-5 pt-4">
 
         {activeCar && (
           <div className="mb-3">
@@ -290,6 +293,8 @@ export default function Garage() {
           </button>
         )}
       </div>
+
+      </div>{/* end center block */}
 
       <BottomNav />
     </div>

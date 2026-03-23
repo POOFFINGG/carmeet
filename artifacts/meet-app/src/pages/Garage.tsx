@@ -103,10 +103,10 @@ export default function Garage() {
       <div className="relative mx-0 overflow-hidden flex-shrink-0" style={{ height: "310px" }}>
         {/* Garage photo */}
         <img
-          src={`${import.meta.env.BASE_URL}garage-bg.png`}
+          src={`${import.meta.env.BASE_URL}garage-bg.png?v=2`}
           alt="" aria-hidden
           className="absolute inset-0 w-full h-full"
-          style={{ objectFit: "cover", objectPosition: "center 60%" }}
+          style={{ objectFit: "cover", objectPosition: "center 55%" }}
         />
         {/* Edge fades — blend into dark bg */}
         <div className="absolute inset-0 pointer-events-none"

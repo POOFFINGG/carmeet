@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { useLocation } from "wouter";
+import { useState, useRef, useEffect } from "react";
+import { useLocation, useParams } from "wouter";
 import { ChevronLeft, Plus, X, Loader2, Check, RefreshCw, Car } from "lucide-react";
 import { useGetMe, useGetMyCars } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -31,24 +31,45 @@ type Stage = "edit" | "photos" | "generating" | "result" | "silhouette";
 
 export default function EditCar() {
   const [, setLocation] = useLocation();
+  const { carId: carIdParam } = useParams<{ carId?: string }>();
   const queryClient = useQueryClient();
   const tgUser = getTgUser();
   const { data: user } = useGetMe({ query: { retry: false } });
   const { data: cars } = useGetMyCars({ query: { enabled: !!user, retry: false } });
+
+  const isNewMode = carIdParam === "new";
   const primaryCar = cars?.find(c => c.isPrimary) || cars?.[0];
+  const targetCar = isNewMode ? null
+    : carIdParam ? cars?.find(c => c.id === parseInt(carIdParam))
+    : primaryCar;
 
   const [stage, setStage] = useState<Stage>("edit");
-  const [make, setMake] = useState(primaryCar?.make ?? "");
-  const [model, setModel] = useState(primaryCar?.model ?? "");
-  const [year, setYear] = useState(primaryCar?.year?.toString() ?? "");
-  const [color, setColor] = useState(primaryCar?.color ?? "");
-  const [silColor, setSilColor] = useState(primaryCar?.silhouetteColor ?? "#e53935");
+  const [make, setMake] = useState("");
+  const [model, setModel] = useState("");
+  const [year, setYear] = useState("");
+  const [color, setColor] = useState("");
+  const [silColor, setSilColor] = useState("#e53935");
   const [photos, setPhotos] = useState<string[]>([]);
   const [generatedUrl, setGeneratedUrl] = useState<string | null>(null);
-  const [attempts, setAttempts] = useState(primaryCar?.aiGenerationAttempts ?? 0);
+  const [attempts, setAttempts] = useState(0);
+  const [initialized, setInitialized] = useState(false);
   const [saving, setSaving] = useState(false);
   const [makeQuery, setMakeQuery] = useState("");
   const [showMakeSuggestions, setShowMakeSuggestions] = useState(false);
+
+  useEffect(() => {
+    if (initialized) return;
+    if (isNewMode) { setInitialized(true); return; }
+    if (targetCar) {
+      setMake(targetCar.make ?? "");
+      setModel(targetCar.model ?? "");
+      setYear(targetCar.year?.toString() ?? "");
+      setColor(targetCar.color ?? "");
+      setSilColor(targetCar.silhouetteColor ?? "#e53935");
+      setAttempts(targetCar.aiGenerationAttempts ?? 0);
+      setInitialized(true);
+    }
+  }, [isNewMode, targetCar, initialized]);
 
   const fileRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
 
@@ -66,13 +87,14 @@ export default function EditCar() {
   async function saveCar() {
     setSaving(true);
     try {
-      if (primaryCar) {
-        await apiCall(`/api/cars/${primaryCar.id}`, "PUT", { make, model, year: year ? parseInt(year) : null, color, silhouetteColor: silColor, isPrimary: true });
+      const isFirstCar = !cars?.length;
+      if (!isNewMode && targetCar) {
+        await apiCall(`/api/cars/${targetCar.id}`, "PUT", { make, model, year: year ? parseInt(year) : null, color, silhouetteColor: silColor, isPrimary: targetCar.isPrimary });
       } else {
-        await apiCall("/api/cars", "POST", { make, model, year: year ? parseInt(year) : null, color, silhouetteColor: silColor, isPrimary: true });
+        await apiCall("/api/cars", "POST", { make, model, year: year ? parseInt(year) : null, color, silhouetteColor: silColor, isPrimary: isFirstCar });
       }
       await queryClient.invalidateQueries({ queryKey: ["/api/cars"] });
-      setLocation("/settings");
+      setLocation("/garage");
     } finally {
       setSaving(false);
     }
@@ -115,9 +137,10 @@ export default function EditCar() {
     setStage("generating");
 
     // Save car data first if not saved
-    let carId = primaryCar?.id;
+    let carId = targetCar?.id;
     if (!carId) {
-      const created = await apiCall("/api/cars", "POST", { make, model, year: year ? parseInt(year) : null, color, silhouetteColor: silColor, isPrimary: true });
+      const isFirstCar = !cars?.length;
+      const created = await apiCall("/api/cars", "POST", { make, model, year: year ? parseInt(year) : null, color, silhouetteColor: silColor, isPrimary: isFirstCar });
       carId = created.id;
       await queryClient.invalidateQueries({ queryKey: ["/api/cars"] });
     }
@@ -141,7 +164,7 @@ export default function EditCar() {
   }
 
   async function acceptResult() {
-    const carId = primaryCar?.id;
+    const carId = targetCar?.id;
     if (!carId) return;
     setSaving(true);
     await apiCall(`/api/cars/${carId}/accept`, "POST");
@@ -151,7 +174,7 @@ export default function EditCar() {
   }
 
   async function useSilhouette() {
-    const carId = primaryCar?.id;
+    const carId = targetCar?.id;
     if (carId) {
       await apiCall(`/api/cars/${carId}/use-silhouette`, "POST", { silhouetteColor: silColor });
       await queryClient.invalidateQueries({ queryKey: ["/api/cars"] });
@@ -311,10 +334,10 @@ export default function EditCar() {
   return (
     <div className="min-h-screen bg-[#0d0d0d] flex flex-col">
       <div className="pt-12 px-5 pb-4 flex items-center gap-3 border-b border-white/6">
-        <button onClick={() => setLocation("/settings")} className="w-9 h-9 flex items-center justify-center rounded-full bg-white/6 active:scale-90 transition-all">
+        <button onClick={() => setLocation(isNewMode ? "/garage" : "/settings")} className="w-9 h-9 flex items-center justify-center rounded-full bg-white/6 active:scale-90 transition-all">
           <ChevronLeft className="w-5 h-5 text-white/70" />
         </button>
-        <h1 className="text-lg font-black text-white">Изменить автомобиль</h1>
+        <h1 className="text-lg font-black text-white">{isNewMode ? "Новое авто" : "Изменить автомобиль"}</h1>
       </div>
 
       <div className="flex-1 px-5 pt-5 flex flex-col gap-5 overflow-y-auto">
@@ -403,28 +426,28 @@ export default function EditCar() {
           <p className="text-white/40 text-xs mb-4 leading-relaxed">
             Загрузите 4 фото вашего авто — нейросеть создаст мультяшный стиль в едином оформлении.
           </p>
-          {primaryCar?.aiStatus === "pending_moderation" && (
+          {targetCar?.aiStatus === "pending_moderation" && (
             <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-3 py-2 mb-3 text-yellow-400 text-xs font-medium">
               🕐 На модерации
             </div>
           )}
-          {primaryCar?.aiStatus === "approved" && (
+          {targetCar?.aiStatus === "approved" && (
             <div className="bg-green-500/10 border border-green-500/20 rounded-xl px-3 py-2 mb-3 text-green-400 text-xs font-medium">
               ✓ Одобрено
             </div>
           )}
-          {primaryCar?.aiStatus === "rejected" && (
+          {targetCar?.aiStatus === "rejected" && (
             <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2 mb-3 text-red-400 text-xs font-medium">
               ✕ Отклонено — загрузите новые фото
             </div>
           )}
           <button
             onClick={() => setStage("photos")}
-            disabled={attempts >= MAX_ATTEMPTS && primaryCar?.aiStatus === "pending_moderation"}
+            disabled={attempts >= MAX_ATTEMPTS && targetCar?.aiStatus === "pending_moderation"}
             className="w-full py-3 bg-primary/15 border border-primary/30 rounded-xl font-bold text-primary text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-40"
           >
             <Car className="w-4 h-4" />
-            {primaryCar?.aiStyledImageUrl ? "Перегенерировать" : "Загрузить фото и сгенерировать"}
+            {targetCar?.aiStyledImageUrl ? "Перегенерировать" : "Загрузить фото и сгенерировать"}
           </button>
         </div>
       </div>

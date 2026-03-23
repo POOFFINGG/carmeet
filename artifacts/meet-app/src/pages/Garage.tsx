@@ -165,13 +165,18 @@ export default function Garage() {
             <h1 className="text-3xl font-black text-white leading-tight">
               {activeCar.make} <span className="text-white/60 font-bold">{activeCar.model}</span>
             </h1>
+            {(activeCar.year || activeCar.color) && (
+              <p className="text-white/35 text-sm mt-0.5">
+                {[activeCar.year && `${activeCar.year} г.`, activeCar.color].filter(Boolean).join(" · ")}
+              </p>
+            )}
           </div>
         )}
 
-        {/* ── Car switcher strip (if >1 cars) ── */}
-        {cars && cars.length > 1 && (
-          <div className="flex gap-2.5 mb-5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
-            {cars.map(car => {
+        {/* ── Car switcher strip — always visible for participants/organizers ── */}
+        {!carsLoading && user?.role !== "viewer" && (
+          <div className="flex gap-2.5 mb-4 overflow-x-auto pb-1 -mx-1 px-1 no-scrollbar">
+            {cars?.map(car => {
               const isActive = car.id === (activeCar?.id);
               return (
                 <button
@@ -206,7 +211,7 @@ export default function Garage() {
             })}
             {/* Add car button */}
             <button
-              onClick={() => setLocation("/settings/car")}
+              onClick={() => setLocation("/settings/car/new")}
               className="flex-shrink-0 flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-2xl border border-dashed border-white/12 bg-white/3 active:scale-95 transition-all w-[72px]"
             >
               <Plus className="w-5 h-5 text-white/25" />
@@ -220,7 +225,7 @@ export default function Garage() {
             <h3 className="text-2xl font-black text-white mb-1">Добавьте авто</h3>
             <p className="text-white/40 text-sm mb-4">Покажите свой проект сообществу</p>
             <button
-              onClick={() => setLocation("/settings/car")}
+              onClick={() => setLocation("/settings/car/new")}
               className="px-7 py-3 bg-primary rounded-2xl font-black text-white active:scale-95 transition-all"
             >
               + Добавить авто

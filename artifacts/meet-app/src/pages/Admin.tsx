@@ -1,18 +1,14 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useLocation } from "wouter";
 import {
   ChevronLeft, Check, X, Loader2, Users, CalendarDays,
-  Car, ShieldCheck, Search, ChevronRight, AlertTriangle,
-  TrendingUp, Clock, Ban, LayoutDashboard, ImagePlay,
-  Delete, LogOut,
+  Car, ShieldCheck, Search, ChevronRight, Ban,
+  LayoutDashboard, ImagePlay, LogOut, Eye, EyeOff,
 } from "lucide-react";
-import { getTgUser } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
-const ADMIN_IDS = ["1000001", "tg_123456789"];
-const ADMIN_PIN = import.meta.env.VITE_ADMIN_PIN ?? "2580";
-const SESSION_KEY = "meet_admin_auth";
+const TOKEN_KEY = "meet_admin_token";
 
 type Tab = "dashboard" | "moderation" | "users" | "events";
 
@@ -92,16 +88,146 @@ const CAT_LABELS: Record<string, string> = {
   club: "Клуб",
 };
 
-function apiFetch(path: string, opts?: RequestInit) {
-  const tgUser = getTgUser();
+function adminFetch(path: string, opts?: RequestInit) {
+  const token = sessionStorage.getItem(TOKEN_KEY) ?? "";
   return fetch(`${BASE_URL}${path}`, {
     ...opts,
     headers: {
       "Content-Type": "application/json",
-      "x-telegram-id": tgUser.id,
+      "x-admin-token": token,
       ...(opts?.headers ?? {}),
     },
   });
+}
+
+// ── Login screen ──────────────────────────────────────────────────────────────
+
+function LoginScreen({ onSuccess }: { onSuccess: (token: string) => void }) {
+  const [, setLocation] = useLocation();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPass, setShowPass] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const passRef = useRef<HTMLInputElement>(null);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!username.trim() || !password.trim()) return;
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch(`${BASE_URL}/api/admin/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: username.trim(), password }),
+      });
+      if (res.ok) {
+        const { token } = await res.json();
+        sessionStorage.setItem(TOKEN_KEY, token);
+        onSuccess(token);
+      } else {
+        setError("Неверный логин или пароль");
+        setPassword("");
+        passRef.current?.focus();
+      }
+    } catch {
+      setError("Ошибка соединения");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-[#0d0d0d] flex flex-col">
+      <div className="pt-12 px-5">
+        <button
+          onClick={() => setLocation("/settings")}
+          className="w-9 h-9 flex items-center justify-center rounded-full bg-white/6 active:scale-90 transition-all"
+        >
+          <ChevronLeft className="w-5 h-5 text-white/70" />
+        </button>
+      </div>
+
+      <div className="flex-1 flex flex-col justify-center px-6 pb-12">
+        {/* Icon + heading */}
+        <div className="flex flex-col items-center gap-4 mb-10">
+          <div className="w-20 h-20 rounded-3xl bg-primary/15 border border-primary/25 flex items-center justify-center">
+            <ShieldCheck className="w-10 h-10 text-primary" />
+          </div>
+          <div className="text-center">
+            <h1 className="text-2xl font-black text-white">Вход в панель</h1>
+            <p className="text-white/35 text-sm mt-1.5">Только для администраторов</p>
+          </div>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={submit} className="flex flex-col gap-4">
+          {/* Username */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-white/40 text-xs font-bold uppercase tracking-widest px-1">
+              Логин
+            </label>
+            <input
+              type="text"
+              value={username}
+              onChange={e => { setUsername(e.target.value); setError(""); }}
+              autoComplete="username"
+              placeholder="admin"
+              onKeyDown={e => e.key === "Enter" && passRef.current?.focus()}
+              className={cn(
+                "w-full bg-white/5 border rounded-2xl px-4 py-4 text-white text-base placeholder:text-white/20 outline-none transition-all",
+                error ? "border-red-500/50" : "border-white/10 focus:border-primary/50"
+              )}
+            />
+          </div>
+
+          {/* Password */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-white/40 text-xs font-bold uppercase tracking-widest px-1">
+              Пароль
+            </label>
+            <div className="relative">
+              <input
+                ref={passRef}
+                type={showPass ? "text" : "password"}
+                value={password}
+                onChange={e => { setPassword(e.target.value); setError(""); }}
+                autoComplete="current-password"
+                placeholder="••••••••"
+                className={cn(
+                  "w-full bg-white/5 border rounded-2xl px-4 py-4 pr-12 text-white text-base placeholder:text-white/20 outline-none transition-all",
+                  error ? "border-red-500/50" : "border-white/10 focus:border-primary/50"
+                )}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPass(v => !v)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 active:text-white/60 transition-colors"
+              >
+                {showPass ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Error */}
+          {error && (
+            <p className="text-red-400 text-sm text-center font-medium -mt-1">{error}</p>
+          )}
+
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={loading || !username.trim() || !password.trim()}
+            className="w-full py-4 bg-primary rounded-2xl font-black text-white text-base flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-40 mt-2"
+          >
+            {loading && <Loader2 className="w-5 h-5 animate-spin" />}
+            {loading ? "Входим..." : "Войти"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
 }
 
 // ── Dashboard tab ─────────────────────────────────────────────────────────────
@@ -111,7 +237,7 @@ function DashboardTab() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    apiFetch("/api/admin/stats")
+    adminFetch("/api/admin/stats")
       .then(r => r.json())
       .then(setStats)
       .finally(() => setLoading(false));
@@ -122,7 +248,6 @@ function DashboardTab() {
 
   return (
     <div className="px-5 py-5 flex flex-col gap-5">
-      {/* Users */}
       <section>
         <SectionTitle icon={<Users className="w-4 h-4 text-violet-400" />} label="Пользователи" />
         <div className="grid grid-cols-2 gap-3">
@@ -133,7 +258,6 @@ function DashboardTab() {
         </div>
       </section>
 
-      {/* Events */}
       <section>
         <SectionTitle icon={<CalendarDays className="w-4 h-4 text-cyan-400" />} label="События" />
         <div className="grid grid-cols-2 gap-3">
@@ -144,7 +268,6 @@ function DashboardTab() {
         </div>
       </section>
 
-      {/* Cars */}
       <section>
         <SectionTitle icon={<Car className="w-4 h-4 text-orange-400" />} label="Автомобили" />
         <div className="grid grid-cols-2 gap-3">
@@ -175,7 +298,7 @@ function ModerationTab() {
 
   const load = useCallback(() => {
     setLoading(true);
-    apiFetch("/api/admin/moderation")
+    adminFetch("/api/admin/moderation")
       .then(r => r.json())
       .then(data => setCars(Array.isArray(data) ? data : []))
       .finally(() => setLoading(false));
@@ -185,14 +308,14 @@ function ModerationTab() {
 
   async function approve(carId: number) {
     setActing(carId);
-    await apiFetch(`/api/admin/moderation/${carId}/approve`, { method: "POST" });
+    await adminFetch(`/api/admin/moderation/${carId}/approve`, { method: "POST" });
     setCars(prev => prev.filter(c => c.id !== carId));
     setActing(null);
   }
 
   async function reject(carId: number) {
     setActing(carId);
-    await apiFetch(`/api/admin/moderation/${carId}/reject`, { method: "POST" });
+    await adminFetch(`/api/admin/moderation/${carId}/reject`, { method: "POST" });
     setCars(prev => prev.filter(c => c.id !== carId));
     setActing(null);
   }
@@ -247,19 +370,13 @@ function ModerationTab() {
           )}
 
           <div className="px-4 py-4 flex gap-3">
-            <button
-              onClick={() => approve(car.id)}
-              disabled={acting === car.id}
-              className="flex-1 py-3 bg-green-600/20 border border-green-500/30 rounded-xl font-bold text-green-400 text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50"
-            >
+            <button onClick={() => approve(car.id)} disabled={acting === car.id}
+              className="flex-1 py-3 bg-green-600/20 border border-green-500/30 rounded-xl font-bold text-green-400 text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50">
               {acting === car.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
               Одобрить
             </button>
-            <button
-              onClick={() => reject(car.id)}
-              disabled={acting === car.id}
-              className="flex-1 py-3 bg-red-600/20 border border-red-500/30 rounded-xl font-bold text-red-400 text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50"
-            >
+            <button onClick={() => reject(car.id)} disabled={acting === car.id}
+              className="flex-1 py-3 bg-red-600/20 border border-red-500/30 rounded-xl font-bold text-red-400 text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50">
               {acting === car.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
               Отклонить
             </button>
@@ -282,7 +399,7 @@ function UsersTab() {
   const load = useCallback((q?: string) => {
     setLoading(true);
     const qs = q ? `?search=${encodeURIComponent(q)}` : "";
-    apiFetch(`/api/admin/users${qs}`)
+    adminFetch(`/api/admin/users${qs}`)
       .then(r => r.json())
       .then(data => setUsers(Array.isArray(data) ? data : []))
       .finally(() => setLoading(false));
@@ -297,7 +414,7 @@ function UsersTab() {
 
   async function changeRole(userId: number, role: string) {
     setChangingRole(userId);
-    const res = await apiFetch(`/api/admin/users/${userId}`, {
+    const res = await adminFetch(`/api/admin/users/${userId}`, {
       method: "PATCH",
       body: JSON.stringify({ role }),
     });
@@ -312,7 +429,8 @@ function UsersTab() {
     return (
       <div className="px-5 py-5 flex flex-col gap-3">
         <div className="flex items-center gap-3 mb-2">
-          <button onClick={() => setRolePickUser(null)} className="w-8 h-8 rounded-full bg-white/6 flex items-center justify-center active:scale-90 transition-all">
+          <button onClick={() => setRolePickUser(null)}
+            className="w-8 h-8 rounded-full bg-white/6 flex items-center justify-center active:scale-90 transition-all">
             <ChevronLeft className="w-4 h-4 text-white/70" />
           </button>
           <div>
@@ -321,25 +439,18 @@ function UsersTab() {
           </div>
         </div>
         {(["viewer", "participant", "organizer"] as const).map(role => (
-          <button
-            key={role}
-            onClick={() => changeRole(rolePickUser.id, role)}
+          <button key={role} onClick={() => changeRole(rolePickUser.id, role)}
             disabled={changingRole === rolePickUser.id}
             className={cn(
               "w-full flex items-center justify-between px-4 py-4 rounded-2xl border transition-all active:scale-[0.98]",
-              rolePickUser.role === role
-                ? "bg-primary/12 border-primary/40"
-                : "bg-white/4 border-white/8"
-            )}
-          >
+              rolePickUser.role === role ? "bg-primary/12 border-primary/40" : "bg-white/4 border-white/8"
+            )}>
             <span className={cn("font-bold text-sm", rolePickUser.role === role ? "text-primary" : "text-white")}>
               {ROLE_LABELS[role]}
             </span>
             {changingRole === rolePickUser.id
               ? <Loader2 className="w-4 h-4 animate-spin text-white/40" />
-              : rolePickUser.role === role
-                ? <Check className="w-4 h-4 text-primary" />
-                : null}
+              : rolePickUser.role === role ? <Check className="w-4 h-4 text-primary" /> : null}
           </button>
         ))}
       </div>
@@ -348,27 +459,20 @@ function UsersTab() {
 
   return (
     <div className="flex flex-col">
-      {/* Search */}
       <div className="px-5 pt-4 pb-3">
         <div className="flex items-center gap-2.5 bg-white/5 border border-white/8 rounded-xl px-3 py-2.5">
           <Search className="w-4 h-4 text-white/30 shrink-0" />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
+          <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Поиск по имени или @username"
-            className="flex-1 bg-transparent text-white text-sm placeholder:text-white/25 outline-none"
-          />
+            className="flex-1 bg-transparent text-white text-sm placeholder:text-white/25 outline-none" />
         </div>
       </div>
 
       {loading ? <Spinner /> : users.length === 0 ? <Empty text="Пользователи не найдены" /> : (
         <div className="px-5 pb-5 flex flex-col gap-2">
           {users.map(user => (
-            <button
-              key={user.id}
-              onClick={() => setRolePickUser(user)}
-              className="w-full bg-white/4 border border-white/8 rounded-2xl px-4 py-3.5 flex items-center gap-3 active:scale-[0.99] transition-all text-left"
-            >
+            <button key={user.id} onClick={() => setRolePickUser(user)}
+              className="w-full bg-white/4 border border-white/8 rounded-2xl px-4 py-3.5 flex items-center gap-3 active:scale-[0.99] transition-all text-left">
               <div className="w-9 h-9 rounded-full bg-white/8 border border-white/10 flex items-center justify-center font-black text-white/60 text-sm shrink-0">
                 {user.displayName?.[0]?.toUpperCase() || "?"}
               </div>
@@ -399,7 +503,7 @@ function EventsTab() {
   const [confirmCancel, setConfirmCancel] = useState<number | null>(null);
 
   useEffect(() => {
-    apiFetch("/api/admin/events")
+    adminFetch("/api/admin/events")
       .then(r => r.json())
       .then(data => setEvents(Array.isArray(data) ? data : []))
       .finally(() => setLoading(false));
@@ -407,7 +511,7 @@ function EventsTab() {
 
   async function cancelEvent(eventId: number) {
     setActing(eventId);
-    const res = await apiFetch(`/api/admin/events/${eventId}/status`, {
+    const res = await adminFetch(`/api/admin/events/${eventId}/status`, {
       method: "PATCH",
       body: JSON.stringify({ status: "cancelled" }),
     });
@@ -435,13 +539,10 @@ function EventsTab() {
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-white/30 text-xs">{CAT_LABELS[ev.category] ?? ev.category}</span>
               <span className="text-white/15 text-xs">·</span>
-              <span className="text-white/30 text-xs">{new Date(ev.date).toLocaleDateString("ru-RU", { day: "numeric", month: "short", year: "numeric" })}</span>
-              {ev.isPrivate && (
-                <>
-                  <span className="text-white/15 text-xs">·</span>
-                  <span className="text-white/30 text-xs">Приватное</span>
-                </>
-              )}
+              <span className="text-white/30 text-xs">
+                {new Date(ev.date).toLocaleDateString("ru-RU", { day: "numeric", month: "short", year: "numeric" })}
+              </span>
+              {ev.isPrivate && <><span className="text-white/15 text-xs">·</span><span className="text-white/30 text-xs">Приватное</span></>}
             </div>
             <p className="text-white/25 text-xs mt-1 truncate">{ev.location}</p>
           </div>
@@ -454,26 +555,19 @@ function EventsTab() {
             {ev.status !== "cancelled" && ev.status !== "finished" && (
               confirmCancel === ev.id ? (
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => setConfirmCancel(null)}
-                    className="px-3 py-1.5 rounded-lg bg-white/8 text-white/50 text-xs font-bold active:scale-95 transition-all"
-                  >
+                  <button onClick={() => setConfirmCancel(null)}
+                    className="px-3 py-1.5 rounded-lg bg-white/8 text-white/50 text-xs font-bold active:scale-95 transition-all">
                     Нет
                   </button>
-                  <button
-                    onClick={() => cancelEvent(ev.id)}
-                    disabled={acting === ev.id}
-                    className="px-3 py-1.5 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-bold flex items-center gap-1.5 active:scale-95 transition-all disabled:opacity-50"
-                  >
+                  <button onClick={() => cancelEvent(ev.id)} disabled={acting === ev.id}
+                    className="px-3 py-1.5 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-bold flex items-center gap-1.5 active:scale-95 transition-all disabled:opacity-50">
                     {acting === ev.id ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
                     Подтвердить
                   </button>
                 </div>
               ) : (
-                <button
-                  onClick={() => setConfirmCancel(ev.id)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold active:scale-95 transition-all"
-                >
+                <button onClick={() => setConfirmCancel(ev.id)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold active:scale-95 transition-all">
                   <Ban className="w-3.5 h-3.5" />
                   Отменить
                 </button>
@@ -522,152 +616,22 @@ function SectionTitle({ icon, label }: { icon: React.ReactNode; label: string })
   );
 }
 
-// ── PIN screen ────────────────────────────────────────────────────────────────
-
-function PinScreen({ onSuccess }: { onSuccess: () => void }) {
-  const [, setLocation] = useLocation();
-  const [pin, setPin] = useState("");
-  const [error, setError] = useState(false);
-  const [shake, setShake] = useState(false);
-
-  function press(digit: string) {
-    if (pin.length >= 4) return;
-    const next = pin + digit;
-    setPin(next);
-    setError(false);
-    if (next.length === 4) {
-      setTimeout(() => {
-        if (next === ADMIN_PIN) {
-          sessionStorage.setItem(SESSION_KEY, "1");
-          onSuccess();
-        } else {
-          setError(true);
-          setShake(true);
-          setTimeout(() => { setShake(false); setPin(""); }, 600);
-        }
-      }, 120);
-    }
-  }
-
-  function del() {
-    setPin(p => p.slice(0, -1));
-    setError(false);
-  }
-
-  const keys = ["1","2","3","4","5","6","7","8","9","","0","⌫"];
-
-  return (
-    <div className="min-h-screen bg-[#0d0d0d] flex flex-col">
-      {/* Back */}
-      <div className="pt-12 px-5 pb-4">
-        <button
-          onClick={() => setLocation("/settings")}
-          className="w-9 h-9 flex items-center justify-center rounded-full bg-white/6 active:scale-90 transition-all"
-        >
-          <ChevronLeft className="w-5 h-5 text-white/70" />
-        </button>
-      </div>
-
-      <div className="flex-1 flex flex-col items-center justify-center px-8 gap-10">
-        {/* Icon + title */}
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-primary/15 border border-primary/25 flex items-center justify-center">
-            <ShieldCheck className="w-8 h-8 text-primary" />
-          </div>
-          <div className="text-center">
-            <h1 className="text-xl font-black text-white">Вход в панель</h1>
-            <p className="text-white/35 text-sm mt-1">Введите PIN-код администратора</p>
-          </div>
-        </div>
-
-        {/* Dots */}
-        <div className={cn("flex gap-4 transition-all", shake && "animate-[shake_0.5s_ease-in-out]")}>
-          {[0,1,2,3].map(i => (
-            <div
-              key={i}
-              className={cn(
-                "w-4 h-4 rounded-full border-2 transition-all duration-150",
-                pin.length > i
-                  ? error ? "bg-red-500 border-red-500" : "bg-primary border-primary"
-                  : "border-white/20 bg-transparent"
-              )}
-            />
-          ))}
-        </div>
-
-        {error && (
-          <p className="text-red-400 text-sm font-bold -mt-5">Неверный PIN-код</p>
-        )}
-
-        {/* Numpad */}
-        <div className="grid grid-cols-3 gap-4 w-full max-w-[280px]">
-          {keys.map((k, i) => {
-            if (k === "") return <div key={i} />;
-            if (k === "⌫") {
-              return (
-                <button
-                  key={i}
-                  onClick={del}
-                  className="h-16 rounded-2xl bg-white/5 border border-white/8 flex items-center justify-center active:scale-90 active:bg-white/10 transition-all"
-                >
-                  <Delete className="w-5 h-5 text-white/50" />
-                </button>
-              );
-            }
-            return (
-              <button
-                key={i}
-                onClick={() => press(k)}
-                className="h-16 rounded-2xl bg-white/6 border border-white/8 font-black text-xl text-white flex items-center justify-center active:scale-90 active:bg-white/12 transition-all"
-              >
-                {k}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function Admin() {
   const [, setLocation] = useLocation();
-  const tgUser = getTgUser();
-  const isAdmin = ADMIN_IDS.includes(tgUser.id);
-  const [authed, setAuthed] = useState(() => sessionStorage.getItem(SESSION_KEY) === "1");
+  const [token, setToken] = useState<string | null>(() => sessionStorage.getItem(TOKEN_KEY));
   const [tab, setTab] = useState<Tab>("dashboard");
 
-  // Non-admin: redirect immediately
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center flex-col gap-4">
-        <div className="w-16 h-16 rounded-2xl bg-white/4 border border-white/8 flex items-center justify-center">
-          <ShieldCheck className="w-8 h-8 text-white/15" />
-        </div>
-        <div className="text-center">
-          <p className="text-white/50 font-bold">Доступ запрещён</p>
-          <p className="text-white/25 text-sm mt-1">Только для администраторов</p>
-        </div>
-        <button
-          onClick={() => setLocation("/garage")}
-          className="mt-2 px-5 py-2.5 bg-white/6 border border-white/10 rounded-xl text-white/50 text-sm font-bold active:scale-95 transition-all"
-        >
-          На главную
-        </button>
-      </div>
-    );
+  // Not logged in — show login screen
+  if (!token) {
+    return <LoginScreen onSuccess={t => setToken(t)} />;
   }
 
-  // Admin but not PIN'd: show PIN screen
-  if (!authed) {
-    return <PinScreen onSuccess={() => setAuthed(true)} />;
-  }
-
-  function logout() {
-    sessionStorage.removeItem(SESSION_KEY);
-    setAuthed(false);
+  async function logout() {
+    await adminFetch("/api/admin/logout", { method: "POST" });
+    sessionStorage.removeItem(TOKEN_KEY);
+    setToken(null);
   }
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
@@ -681,10 +645,8 @@ export default function Admin() {
     <div className="min-h-screen bg-[#0d0d0d] flex flex-col">
       {/* Header */}
       <div className="pt-12 px-5 pb-4 flex items-center gap-3 border-b border-white/6">
-        <button
-          onClick={() => setLocation("/settings")}
-          className="w-9 h-9 flex items-center justify-center rounded-full bg-white/6 active:scale-90 transition-all"
-        >
+        <button onClick={() => setLocation("/settings")}
+          className="w-9 h-9 flex items-center justify-center rounded-full bg-white/6 active:scale-90 transition-all">
           <ChevronLeft className="w-5 h-5 text-white/70" />
         </button>
         <div>
@@ -696,11 +658,9 @@ export default function Admin() {
             <ShieldCheck className="w-3.5 h-3.5 text-primary" />
             <span className="text-primary text-xs font-bold">Admin</span>
           </div>
-          <button
-            onClick={logout}
+          <button onClick={logout}
             className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 border border-white/8 active:scale-90 transition-all"
-            title="Выйти"
-          >
+            title="Выйти">
             <LogOut className="w-3.5 h-3.5 text-white/40" />
           </button>
         </div>
@@ -709,14 +669,11 @@ export default function Admin() {
       {/* Tabs */}
       <div className="flex border-b border-white/6 px-2">
         {tabs.map(t => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
+          <button key={t.id} onClick={() => setTab(t.id)}
             className={cn(
               "flex-1 flex flex-col items-center gap-1 py-3 text-[10px] font-bold transition-all",
               tab === t.id ? "text-primary border-b-2 border-primary" : "text-white/30"
-            )}
-          >
+            )}>
             {t.icon}
             {t.label}
           </button>

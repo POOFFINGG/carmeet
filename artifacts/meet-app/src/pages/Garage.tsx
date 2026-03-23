@@ -9,48 +9,6 @@ import { BottomNav } from "@/components/Navigation";
 
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
-function NFSBackground() {
-  return (
-    <>
-
-      {/* Photo background — shifted up so floor aligns with where the car sits */}
-      <div className="absolute inset-0 overflow-hidden">
-        <img
-          src={`${import.meta.env.BASE_URL}garage-bg.png`}
-          alt=""
-          aria-hidden
-          style={{
-            position: "absolute",
-            left: 0,
-            width: "100%",
-            height: "135%",
-            top: "-30%",
-            objectFit: "cover",
-            objectPosition: "center center",
-          }}
-        />
-      </div>
-
-      {/* Dark overlay — top readable, opens up toward the car+floor zone */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background: "linear-gradient(to bottom, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.30) 35%, rgba(0,0,0,0.10) 55%, rgba(0,0,0,0.50) 100%)",
-          zIndex: 1,
-        }}
-      />
-
-      {/* Vignette edges */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: "radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.65) 100%)",
-          zIndex: 2,
-        }}
-      />
-    </>
-  );
-}
 
 const AI_STATUS_BADGE: Record<string, { label: string; color: string }> = {
   pending_moderation: { label: "На модерации", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
@@ -100,12 +58,10 @@ export default function Garage() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden flex flex-col">
-      {/* ── NFS Underground garage background ── */}
-      <NFSBackground />
+    <div className="min-h-screen bg-[#0d0d0d] flex flex-col">
 
       {/* ── Top bar ── */}
-      <div className="relative z-10 pt-12 px-5 flex items-center justify-between flex-shrink-0">
+      <div className="pt-12 px-5 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-3">
           {/* Avatar — click to upload */}
           <div className="relative">
@@ -145,46 +101,69 @@ export default function Garage() {
         </button>
       </div>
 
-      {/* ── Car image — anchored to floor ── */}
-      <div className="relative z-10 flex-1 flex items-end justify-center px-4 pb-2">
+      {/* ── Garage scene — car centered inside the background image ── */}
+      <div className="relative mx-0 mt-4 mb-0 overflow-hidden" style={{ height: "280px" }}>
+        {/* Garage photo, cropped to show floor area in center */}
+        <img
+          src={`${import.meta.env.BASE_URL}garage-bg.png`}
+          alt=""
+          aria-hidden
+          className="absolute inset-0 w-full h-full"
+          style={{ objectFit: "cover", objectPosition: "center 72%" }}
+        />
+        {/* Side fades — blend into dark bg */}
+        <div className="absolute inset-0 pointer-events-none"
+          style={{ background: "linear-gradient(to right, rgba(13,13,13,0.75) 0%, transparent 20%, transparent 80%, rgba(13,13,13,0.75) 100%)" }} />
+        {/* Top fade */}
+        <div className="absolute inset-0 pointer-events-none"
+          style={{ background: "linear-gradient(to bottom, rgba(13,13,13,0.85) 0%, transparent 30%, transparent 70%, rgba(13,13,13,0.7) 100%)" }} />
+
+        {/* Car image — centered within the garage panel */}
         {!carsLoading && (activeCar || user?.role !== "viewer") ? (
-          <div className="relative w-full">
-            <img
-              key={activeCar?.id}
-              src={carDisplayUrl}
-              alt="My Car"
-              className="w-full max-h-[44vh] object-contain transition-opacity duration-300"
-              style={{ filter: "drop-shadow(0 12px 24px rgba(0,0,0,0.7)) drop-shadow(0 4px 8px rgba(0,0,0,0.5))" }}
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = `${import.meta.env.BASE_URL}images/default-car.png`;
-              }}
-            />
-            {/* AI status badge */}
-            {showAiBadge && activeCar && (
-              <div className="absolute top-2 right-2">
-                <span className={cn(
-                  "text-[10px] font-bold px-2.5 py-1 rounded-lg border",
-                  AI_STATUS_BADGE[activeCar.aiStatus]?.color ?? "bg-white/10 text-white/50 border-white/10"
-                )}>
-                  {AI_STATUS_BADGE[activeCar.aiStatus]?.label ?? activeCar.aiStatus}
-                </span>
-              </div>
-            )}
+          <div className="absolute inset-0 flex items-center justify-center px-4">
+            <div className="relative w-full">
+              <img
+                key={activeCar?.id}
+                src={carDisplayUrl}
+                alt="My Car"
+                className="w-full object-contain transition-opacity duration-300"
+                style={{
+                  maxHeight: "240px",
+                  filter: "drop-shadow(0 16px 28px rgba(0,0,0,0.8)) drop-shadow(0 4px 10px rgba(0,0,0,0.6))",
+                }}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = `${import.meta.env.BASE_URL}images/default-car.png`;
+                }}
+              />
+              {/* AI status badge */}
+              {showAiBadge && activeCar && (
+                <div className="absolute top-2 right-2">
+                  <span className={cn(
+                    "text-[10px] font-bold px-2.5 py-1 rounded-lg border",
+                    AI_STATUS_BADGE[activeCar.aiStatus]?.color ?? "bg-white/10 text-white/50 border-white/10"
+                  )}>
+                    {AI_STATUS_BADGE[activeCar.aiStatus]?.label ?? activeCar.aiStatus}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
         ) : user?.role === "viewer" ? (
-          <div className="flex flex-col items-center text-center gap-3">
-            <Car className="w-20 h-20 text-white/10" />
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+            <Car className="w-16 h-16 text-white/20" />
             <p className="text-white/30 text-sm">Режим зрителя</p>
           </div>
         ) : (
-          <div className="w-24 h-24 rounded-full border-2 border-dashed border-white/15 flex items-center justify-center">
-            <Plus className="w-8 h-8 text-white/25" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-20 h-20 rounded-full border-2 border-dashed border-white/20 flex items-center justify-center">
+              <Plus className="w-7 h-7 text-white/25" />
+            </div>
           </div>
         )}
       </div>
 
       {/* ── Bottom: car info + car switcher + applications ── */}
-      <div className="relative z-10 flex-shrink-0 px-5 pb-28">
+      <div className="flex-1 px-5 pt-4 pb-28">
 
         {activeCar && (
           <div className="mb-4">

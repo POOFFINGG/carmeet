@@ -60,47 +60,8 @@ export default function Garage() {
   return (
     <div className="min-h-screen bg-[#0d0d0d] flex flex-col">
 
-      {/* ── Topbar ── */}
-      <div className="pt-12 px-5 flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-            <button
-              onClick={() => avatarInputRef.current?.click()}
-              className="relative w-11 h-11 rounded-full bg-primary/20 border-2 border-primary overflow-hidden flex items-center justify-center font-black text-lg text-primary active:scale-90 transition-all"
-            >
-              {user?.avatarUrl ? (
-                <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-              ) : (
-                <span>{user?.displayName?.[0]?.toUpperCase() || "?"}</span>
-              )}
-              <div className="absolute inset-0 bg-black/0 hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 hover:opacity-100">
-                <Camera className="w-4 h-4 text-white" />
-              </div>
-            </button>
-          </div>
-          <div>
-            <p className="text-white/40 text-[10px] font-medium leading-none mb-0.5">
-              {user?.role === "organizer" ? "Организатор" : user?.role === "participant" ? "Участник" : "Зритель"}
-            </p>
-            <h2 className="text-lg font-black text-white leading-none">
-              @{user?.username || user?.displayName || "—"}
-            </h2>
-          </div>
-        </div>
-        <button
-          onClick={() => setLocation("/settings")}
-          className="w-9 h-9 rounded-full flex items-center justify-center border border-white/10 bg-white/5 active:scale-90 transition-all"
-        >
-          <Settings className="w-4 h-4 text-white/50" />
-        </button>
-      </div>
-
-      {/* ── Center block: garage panel + info ── */}
-      <div className="flex-1 flex flex-col pb-20">
-
-      {/* ── Garage panel — contained background with car inside ── */}
-      <div className="relative mx-0 mt-3 overflow-hidden flex-shrink-0" style={{ height: "310px" }}>
+      {/* ── Garage panel — from the very top, topbar overlaid inside ── */}
+      <div className="relative mx-0 overflow-hidden flex-shrink-0" style={{ height: "420px" }}>
         {/* Garage photo */}
         <img
           src={`${import.meta.env.BASE_URL}garage-bg.png?v=2`}
@@ -108,15 +69,51 @@ export default function Garage() {
           className="absolute inset-0 w-full h-full"
           style={{ objectFit: "cover", objectPosition: "center 55%" }}
         />
-        {/* Edge fades — blend into dark bg */}
+        {/* Edge fades */}
         <div className="absolute inset-0 pointer-events-none"
-          style={{ background: "linear-gradient(to right, rgba(13,13,13,0.7) 0%, transparent 18%, transparent 82%, rgba(13,13,13,0.7) 100%)" }} />
+          style={{ background: "linear-gradient(to right, rgba(13,13,13,0.65) 0%, transparent 18%, transparent 82%, rgba(13,13,13,0.65) 100%)" }} />
         <div className="absolute inset-0 pointer-events-none"
-          style={{ background: "linear-gradient(to bottom, rgba(13,13,13,0.6) 0%, transparent 22%, transparent 65%, rgba(13,13,13,0.8) 100%)" }} />
+          style={{ background: "linear-gradient(to bottom, rgba(13,13,13,0.55) 0%, transparent 28%, transparent 65%, rgba(13,13,13,0.85) 100%)" }} />
 
-        {/* Car — centered horizontally, shifted slightly below center */}
+        {/* Topbar — absolute, on top of the garage photo */}
+        <div className="absolute top-0 left-0 right-0 z-20 pt-12 px-5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+              <button
+                onClick={() => avatarInputRef.current?.click()}
+                className="relative w-11 h-11 rounded-full bg-primary/20 border-2 border-primary overflow-hidden flex items-center justify-center font-black text-lg text-primary active:scale-90 transition-all"
+              >
+                {user?.avatarUrl ? (
+                  <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <span>{user?.displayName?.[0]?.toUpperCase() || "?"}</span>
+                )}
+                <div className="absolute inset-0 bg-black/0 hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 hover:opacity-100">
+                  <Camera className="w-4 h-4 text-white" />
+                </div>
+              </button>
+            </div>
+            <div>
+              <p className="text-white/40 text-[10px] font-medium leading-none mb-0.5">
+                {user?.role === "organizer" ? "Организатор" : user?.role === "participant" ? "Участник" : "Зритель"}
+              </p>
+              <h2 className="text-lg font-black text-white leading-none">
+                @{user?.username || user?.displayName || "—"}
+              </h2>
+            </div>
+          </div>
+          <button
+            onClick={() => setLocation("/settings")}
+            className="w-9 h-9 rounded-full flex items-center justify-center border border-white/10 bg-white/5 active:scale-90 transition-all"
+          >
+            <Settings className="w-4 h-4 text-white/50" />
+          </button>
+        </div>
+
+        {/* Car — centered horizontally, below the topbar */}
         {!carsLoading && activeCar ? (
-          <div className="absolute inset-0 flex items-center justify-center px-5 pt-20">
+          <div className="absolute inset-0 flex items-center justify-center px-5 pt-24">
             <div className="relative w-full">
               <img
                 key={activeCar?.id}
@@ -293,8 +290,6 @@ export default function Garage() {
           </button>
         )}
       </div>
-
-      </div>{/* end center block */}
 
       <BottomNav />
     </div>

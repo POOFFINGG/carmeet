@@ -74,9 +74,9 @@ export default function Garage() {
       <div className="absolute inset-0 pointer-events-none"
         style={{ background: "radial-gradient(ellipse at 50% 50%, transparent 45%, rgba(0,0,0,0.55) 100%)" }} />
 
-      {/* ── Upper section: topbar + car, exactly 63vh tall ── */}
-      {/* At 844px: 63vh = 532px = floor of garage photo */}
-      <div className="relative z-10 flex-shrink-0 flex flex-col" style={{ height: "63vh" }}>
+      {/* ── Upper section: topbar + car, exactly 70vh tall ── */}
+      {/* At 844px: 70vh = 591px = floor of garage photo */}
+      <div className="relative z-10 flex-shrink-0 flex flex-col" style={{ height: "70vh" }}>
 
         {/* Top bar */}
         <div className="pt-12 px-5 flex items-center justify-between flex-shrink-0">

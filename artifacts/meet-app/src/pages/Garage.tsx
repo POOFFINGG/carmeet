@@ -58,69 +58,65 @@ export default function Garage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0d0d0d] flex flex-col">
+    <div className="relative min-h-screen overflow-hidden flex flex-col">
 
-      {/* ── Top bar ── */}
-      <div className="pt-12 px-5 flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-3">
-          {/* Avatar — click to upload */}
-          <div className="relative">
-            <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-            <button
-              onClick={() => avatarInputRef.current?.click()}
-              className="relative w-11 h-11 rounded-full bg-primary/20 border-2 border-primary overflow-hidden flex items-center justify-center font-black text-lg text-primary active:scale-90 transition-all"
-            >
-              {user?.avatarUrl ? (
-                <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-              ) : (
-                <span>{user?.displayName?.[0]?.toUpperCase() || "?"}</span>
-              )}
-              {/* Camera overlay hint */}
-              <div className="absolute inset-0 bg-black/0 hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 hover:opacity-100">
-                <Camera className="w-4 h-4 text-white" />
-              </div>
-            </button>
-          </div>
+      {/* ── Full-screen garage photo ── */}
+      <img
+        src={`${import.meta.env.BASE_URL}garage-bg.png`}
+        alt="" aria-hidden
+        className="absolute inset-0 w-full h-full"
+        style={{ objectFit: "cover", objectPosition: "center center" }}
+      />
+      {/* Overlays: darken top for readability, keep mid transparent, darken bottom */}
+      <div className="absolute inset-0 pointer-events-none"
+        style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.25) 40%, rgba(0,0,0,0.10) 63%, rgba(0,0,0,0.65) 100%)" }} />
+      {/* Vignette */}
+      <div className="absolute inset-0 pointer-events-none"
+        style={{ background: "radial-gradient(ellipse at 50% 50%, transparent 45%, rgba(0,0,0,0.55) 100%)" }} />
 
-          <div>
-            <p className="text-white/40 text-[10px] font-medium leading-none mb-0.5">
-              {user?.role === "organizer" ? "Организатор" : user?.role === "participant" ? "Участник" : "Зритель"}
-            </p>
-            {/* Nick — not a link, just text */}
-            <h2 className="text-lg font-black text-white leading-none">
-              @{user?.username || user?.displayName || "—"}
-            </h2>
+      {/* ── Upper section: topbar + car, exactly 63vh tall ── */}
+      {/* At 844px: 63vh = 532px = floor of garage photo */}
+      <div className="relative z-10 flex-shrink-0 flex flex-col" style={{ height: "63vh" }}>
+
+        {/* Top bar */}
+        <div className="pt-12 px-5 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+              <button
+                onClick={() => avatarInputRef.current?.click()}
+                className="relative w-11 h-11 rounded-full bg-primary/20 border-2 border-primary overflow-hidden flex items-center justify-center font-black text-lg text-primary active:scale-90 transition-all"
+              >
+                {user?.avatarUrl ? (
+                  <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <span>{user?.displayName?.[0]?.toUpperCase() || "?"}</span>
+                )}
+                <div className="absolute inset-0 bg-black/0 hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 hover:opacity-100">
+                  <Camera className="w-4 h-4 text-white" />
+                </div>
+              </button>
+            </div>
+            <div>
+              <p className="text-white/40 text-[10px] font-medium leading-none mb-0.5">
+                {user?.role === "organizer" ? "Организатор" : user?.role === "participant" ? "Участник" : "Зритель"}
+              </p>
+              <h2 className="text-lg font-black text-white leading-none">
+                @{user?.username || user?.displayName || "—"}
+              </h2>
+            </div>
           </div>
+          <button
+            onClick={() => setLocation("/settings")}
+            className="w-9 h-9 rounded-full flex items-center justify-center border border-white/10 bg-white/5 active:scale-90 transition-all"
+          >
+            <Settings className="w-4 h-4 text-white/50" />
+          </button>
         </div>
 
-        <button
-          onClick={() => setLocation("/settings")}
-          className="w-9 h-9 rounded-full flex items-center justify-center border border-white/10 bg-white/5 active:scale-90 transition-all"
-        >
-          <Settings className="w-4 h-4 text-white/50" />
-        </button>
-      </div>
-
-      {/* ── Garage scene — car centered inside the background image ── */}
-      <div className="relative mx-0 mt-4 mb-0 overflow-hidden" style={{ height: "280px" }}>
-        {/* Garage photo, cropped to show floor area in center */}
-        <img
-          src={`${import.meta.env.BASE_URL}garage-bg.png`}
-          alt=""
-          aria-hidden
-          className="absolute inset-0 w-full h-full"
-          style={{ objectFit: "cover", objectPosition: "center 72%" }}
-        />
-        {/* Side fades — blend into dark bg */}
-        <div className="absolute inset-0 pointer-events-none"
-          style={{ background: "linear-gradient(to right, rgba(13,13,13,0.75) 0%, transparent 20%, transparent 80%, rgba(13,13,13,0.75) 100%)" }} />
-        {/* Top fade */}
-        <div className="absolute inset-0 pointer-events-none"
-          style={{ background: "linear-gradient(to bottom, rgba(13,13,13,0.85) 0%, transparent 30%, transparent 70%, rgba(13,13,13,0.7) 100%)" }} />
-
-        {/* Car image — centered within the garage panel */}
+        {/* Car zone — fills remaining height, car anchored to bottom (= floor) */}
         {!carsLoading && (activeCar || user?.role !== "viewer") ? (
-          <div className="absolute inset-0 flex items-center justify-center px-4 pt-16">
+          <div className="flex-1 flex items-end justify-center px-4 pb-1">
             <div className="relative w-full">
               <img
                 key={activeCar?.id}
@@ -128,14 +124,13 @@ export default function Garage() {
                 alt="My Car"
                 className="w-full object-contain transition-opacity duration-300"
                 style={{
-                  maxHeight: "240px",
-                  filter: "drop-shadow(0 16px 28px rgba(0,0,0,0.8)) drop-shadow(0 4px 10px rgba(0,0,0,0.6))",
+                  maxHeight: "46vh",
+                  filter: "drop-shadow(0 16px 32px rgba(0,0,0,0.85)) drop-shadow(0 4px 10px rgba(0,0,0,0.6))",
                 }}
                 onError={(e) => {
                   (e.target as HTMLImageElement).src = `${import.meta.env.BASE_URL}images/default-car.png`;
                 }}
               />
-              {/* AI status badge */}
               {showAiBadge && activeCar && (
                 <div className="absolute top-2 right-2">
                   <span className={cn(
@@ -149,21 +144,21 @@ export default function Garage() {
             </div>
           </div>
         ) : user?.role === "viewer" ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-            <Car className="w-16 h-16 text-white/20" />
+          <div className="flex-1 flex flex-col items-center justify-center gap-3">
+            <Car className="w-20 h-20 text-white/10" />
             <p className="text-white/30 text-sm">Режим зрителя</p>
           </div>
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-20 h-20 rounded-full border-2 border-dashed border-white/20 flex items-center justify-center">
-              <Plus className="w-7 h-7 text-white/25" />
+          <div className="flex-1 flex items-center justify-center">
+            <div className="w-24 h-24 rounded-full border-2 border-dashed border-white/15 flex items-center justify-center">
+              <Plus className="w-8 h-8 text-white/25" />
             </div>
           </div>
         )}
       </div>
 
       {/* ── Bottom: car info + car switcher + applications ── */}
-      <div className="flex-1 px-5 pt-4 pb-28">
+      <div className="relative z-10 flex-1 px-5 pt-4 pb-28">
 
         {activeCar && (
           <div className="mb-4">

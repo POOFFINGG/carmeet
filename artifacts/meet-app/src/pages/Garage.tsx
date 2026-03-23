@@ -113,7 +113,7 @@ export default function Garage() {
 
         {/* Car — centered horizontally, shifted slightly below center */}
         {!carsLoading && activeCar ? (
-          <div className="absolute inset-0 flex items-center justify-center px-5 pt-10">
+          <div className="absolute inset-0 flex items-center justify-center px-5 pt-20">
             <div className="relative w-full">
               <img
                 key={activeCar?.id}

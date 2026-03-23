@@ -58,7 +58,7 @@ export default function Garage() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden flex flex-col">
+    <div className="relative h-screen overflow-hidden flex flex-col">
 
       {/* ── Full-screen garage photo ── */}
       <img
@@ -158,7 +158,7 @@ export default function Garage() {
       </div>
 
       {/* ── Bottom: car info + car switcher + applications ── */}
-      <div className="relative z-10 flex-1 px-5 pt-4 pb-28">
+      <div className="relative z-10 flex-1 overflow-y-auto no-scrollbar px-5 pt-4 pb-28">
 
         {activeCar && (
           <div className="mb-4">

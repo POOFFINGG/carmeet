@@ -58,7 +58,7 @@ export default function Garage() {
   }
 
   return (
-    <div className="relative h-screen overflow-hidden flex flex-col">
+    <div className="relative h-screen overflow-hidden">
 
       {/* ── Full-screen garage photo ── */}
       <img
@@ -67,110 +67,104 @@ export default function Garage() {
         className="absolute inset-0 w-full h-full"
         style={{ objectFit: "cover", objectPosition: "center center" }}
       />
-      {/* Overlays: darken top for readability, keep mid transparent, darken bottom */}
+      {/* Top gradient — darkens header area */}
       <div className="absolute inset-0 pointer-events-none"
-        style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.25) 40%, rgba(0,0,0,0.10) 63%, rgba(0,0,0,0.65) 100%)" }} />
-      {/* Vignette */}
+        style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.20) 38%, rgba(0,0,0,0.05) 60%, rgba(0,0,0,0.70) 72%, rgba(0,0,0,0.92) 100%)" }} />
+      {/* Side vignette */}
       <div className="absolute inset-0 pointer-events-none"
-        style={{ background: "radial-gradient(ellipse at 50% 50%, transparent 45%, rgba(0,0,0,0.55) 100%)" }} />
+        style={{ background: "radial-gradient(ellipse at 50% 40%, transparent 40%, rgba(0,0,0,0.45) 100%)" }} />
 
-      {/* ── Upper section: topbar + car, exactly 70vh tall ── */}
-      {/* At 844px: 70vh = 591px = floor of garage photo */}
-      <div className="relative z-10 flex-shrink-0 flex flex-col" style={{ height: "70vh" }}>
-
-        {/* Top bar */}
-        <div className="pt-12 px-5 flex items-center justify-between flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-              <button
-                onClick={() => avatarInputRef.current?.click()}
-                className="relative w-11 h-11 rounded-full bg-primary/20 border-2 border-primary overflow-hidden flex items-center justify-center font-black text-lg text-primary active:scale-90 transition-all"
-              >
-                {user?.avatarUrl ? (
-                  <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-                ) : (
-                  <span>{user?.displayName?.[0]?.toUpperCase() || "?"}</span>
-                )}
-                <div className="absolute inset-0 bg-black/0 hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 hover:opacity-100">
-                  <Camera className="w-4 h-4 text-white" />
-                </div>
-              </button>
-            </div>
-            <div>
-              <p className="text-white/40 text-[10px] font-medium leading-none mb-0.5">
-                {user?.role === "organizer" ? "Организатор" : user?.role === "participant" ? "Участник" : "Зритель"}
-              </p>
-              <h2 className="text-lg font-black text-white leading-none">
-                @{user?.username || user?.displayName || "—"}
-              </h2>
-            </div>
-          </div>
-          <button
-            onClick={() => setLocation("/settings")}
-            className="w-9 h-9 rounded-full flex items-center justify-center border border-white/10 bg-white/5 active:scale-90 transition-all"
-          >
-            <Settings className="w-4 h-4 text-white/50" />
-          </button>
-        </div>
-
-        {/* Car zone — fills remaining height, car anchored to bottom (= floor) */}
-        {!carsLoading && (activeCar || user?.role !== "viewer") ? (
-          <div className="flex-1 flex items-end justify-center px-4 pb-1">
-            <div className="relative w-full">
-              <img
-                key={activeCar?.id}
-                src={carDisplayUrl}
-                alt="My Car"
-                className="w-full object-contain transition-opacity duration-300"
-                style={{
-                  maxHeight: "46vh",
-                  filter: "drop-shadow(0 16px 32px rgba(0,0,0,0.85)) drop-shadow(0 4px 10px rgba(0,0,0,0.6))",
-                }}
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = `${import.meta.env.BASE_URL}images/default-car.png`;
-                }}
-              />
-              {showAiBadge && activeCar && (
-                <div className="absolute top-2 right-2">
-                  <span className={cn(
-                    "text-[10px] font-bold px-2.5 py-1 rounded-lg border",
-                    AI_STATUS_BADGE[activeCar.aiStatus]?.color ?? "bg-white/10 text-white/50 border-white/10"
-                  )}>
-                    {AI_STATUS_BADGE[activeCar.aiStatus]?.label ?? activeCar.aiStatus}
-                  </span>
-                </div>
+      {/* ── Topbar — absolute top ── */}
+      <div className="absolute top-0 left-0 right-0 z-20 pt-12 px-5 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+            <button
+              onClick={() => avatarInputRef.current?.click()}
+              className="relative w-11 h-11 rounded-full bg-primary/20 border-2 border-primary overflow-hidden flex items-center justify-center font-black text-lg text-primary active:scale-90 transition-all"
+            >
+              {user?.avatarUrl ? (
+                <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <span>{user?.displayName?.[0]?.toUpperCase() || "?"}</span>
               )}
-            </div>
+              <div className="absolute inset-0 bg-black/0 hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 hover:opacity-100">
+                <Camera className="w-4 h-4 text-white" />
+              </div>
+            </button>
           </div>
-        ) : user?.role === "viewer" ? (
-          <div className="flex-1 flex flex-col items-center justify-center gap-3">
-            <Car className="w-20 h-20 text-white/10" />
-            <p className="text-white/30 text-sm">Режим зрителя</p>
+          <div>
+            <p className="text-white/40 text-[10px] font-medium leading-none mb-0.5">
+              {user?.role === "organizer" ? "Организатор" : user?.role === "participant" ? "Участник" : "Зритель"}
+            </p>
+            <h2 className="text-lg font-black text-white leading-none">
+              @{user?.username || user?.displayName || "—"}
+            </h2>
           </div>
-        ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="w-24 h-24 rounded-full border-2 border-dashed border-white/15 flex items-center justify-center">
-              <Plus className="w-8 h-8 text-white/25" />
-            </div>
-          </div>
-        )}
+        </div>
+        <button
+          onClick={() => setLocation("/settings")}
+          className="w-9 h-9 rounded-full flex items-center justify-center border border-white/10 bg-white/5 active:scale-90 transition-all"
+        >
+          <Settings className="w-4 h-4 text-white/50" />
+        </button>
       </div>
 
-      {/* ── Bottom: car info + car switcher + applications ── */}
-      <div className="relative z-10 flex-1 overflow-y-auto no-scrollbar px-5 pt-4 pb-28">
+      {/* ── Car — absolute, bottom of car sits on garage floor (30% from bottom) ── */}
+      {!carsLoading && activeCar ? (
+        <div className="absolute inset-x-0 z-10 px-4" style={{ bottom: "30%" }}>
+          <div className="relative w-full">
+            <img
+              key={activeCar?.id}
+              src={carDisplayUrl}
+              alt="My Car"
+              className="w-full object-contain"
+              style={{
+                maxHeight: "48vh",
+                objectPosition: "bottom",
+                filter: "drop-shadow(0 20px 36px rgba(0,0,0,0.90)) drop-shadow(0 4px 12px rgba(0,0,0,0.65))",
+                transition: "opacity 0.3s",
+              }}
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = `${import.meta.env.BASE_URL}images/default-car.png`;
+              }}
+            />
+            {showAiBadge && activeCar && (
+              <div className="absolute top-0 right-0">
+                <span className={cn(
+                  "text-[10px] font-bold px-2.5 py-1 rounded-lg border",
+                  AI_STATUS_BADGE[activeCar.aiStatus]?.color ?? "bg-white/10 text-white/50 border-white/10"
+                )}>
+                  {AI_STATUS_BADGE[activeCar.aiStatus]?.label ?? activeCar.aiStatus}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : !carsLoading && user?.role === "viewer" ? (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 z-10">
+          <Car className="w-20 h-20 text-white/10" />
+          <p className="text-white/30 text-sm">Режим зрителя</p>
+        </div>
+      ) : !carsLoading ? (
+        <div className="absolute inset-0 flex items-center justify-center z-10">
+          <div className="w-24 h-24 rounded-full border-2 border-dashed border-white/15 flex items-center justify-center">
+            <Plus className="w-8 h-8 text-white/25" />
+          </div>
+        </div>
+      ) : null}
+
+      {/* ── Bottom info — absolute bottom overlay ── */}
+      <div className="absolute left-0 right-0 bottom-0 z-20 px-5 pb-24 pt-3">
 
         {activeCar && (
-          <div className="mb-4">
-            <span className="inline-flex bg-primary/90 text-white text-[10px] font-black px-3 py-1 rounded-lg uppercase tracking-wider mb-2">
+          <div className="mb-3">
+            <span className="inline-flex bg-primary/90 text-white text-[10px] font-black px-3 py-1 rounded-lg uppercase tracking-wider mb-1.5">
               {activeCar.isPrimary ? "Основное авто" : "Второй автомобиль"}
             </span>
-            <h1 className="text-4xl font-black text-white leading-tight">
+            <h1 className="text-3xl font-black text-white leading-tight">
               {activeCar.make} <span className="text-white/60 font-bold">{activeCar.model}</span>
             </h1>
-            <p className="text-white/35 text-sm mt-0.5">
-              {[activeCar.year && `${activeCar.year} г.`, activeCar.color].filter(Boolean).join(" · ")}
-            </p>
           </div>
         )}
 
@@ -255,7 +249,7 @@ export default function Garage() {
               <Link href="/profile" className="text-xs text-primary font-bold">Все</Link>
             </div>
             <div className="flex flex-col gap-2">
-              {apps.slice(0, 2).map(app => (
+              {apps.slice(0, 1).map(app => (
                 <div key={app.id} className="bg-white/5 backdrop-blur-xl rounded-2xl p-3.5 flex items-center justify-between border border-white/8">
                   <div className="min-w-0 flex-1">
                     <h4 className="font-bold text-white text-sm truncate">{app.eventTitle || "Событие"}</h4>

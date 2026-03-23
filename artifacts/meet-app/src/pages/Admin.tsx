@@ -4,12 +4,15 @@ import {
   ChevronLeft, Check, X, Loader2, Users, CalendarDays,
   Car, ShieldCheck, Search, ChevronRight, AlertTriangle,
   TrendingUp, Clock, Ban, LayoutDashboard, ImagePlay,
+  Delete, LogOut,
 } from "lucide-react";
 import { getTgUser } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 const ADMIN_IDS = ["1000001", "tg_123456789"];
+const ADMIN_PIN = import.meta.env.VITE_ADMIN_PIN ?? "2580";
+const SESSION_KEY = "meet_admin_auth";
 
 type Tab = "dashboard" | "moderation" | "users" | "events";
 
@@ -519,21 +522,152 @@ function SectionTitle({ icon, label }: { icon: React.ReactNode; label: string })
   );
 }
 
+// ── PIN screen ────────────────────────────────────────────────────────────────
+
+function PinScreen({ onSuccess }: { onSuccess: () => void }) {
+  const [, setLocation] = useLocation();
+  const [pin, setPin] = useState("");
+  const [error, setError] = useState(false);
+  const [shake, setShake] = useState(false);
+
+  function press(digit: string) {
+    if (pin.length >= 4) return;
+    const next = pin + digit;
+    setPin(next);
+    setError(false);
+    if (next.length === 4) {
+      setTimeout(() => {
+        if (next === ADMIN_PIN) {
+          sessionStorage.setItem(SESSION_KEY, "1");
+          onSuccess();
+        } else {
+          setError(true);
+          setShake(true);
+          setTimeout(() => { setShake(false); setPin(""); }, 600);
+        }
+      }, 120);
+    }
+  }
+
+  function del() {
+    setPin(p => p.slice(0, -1));
+    setError(false);
+  }
+
+  const keys = ["1","2","3","4","5","6","7","8","9","","0","⌫"];
+
+  return (
+    <div className="min-h-screen bg-[#0d0d0d] flex flex-col">
+      {/* Back */}
+      <div className="pt-12 px-5 pb-4">
+        <button
+          onClick={() => setLocation("/settings")}
+          className="w-9 h-9 flex items-center justify-center rounded-full bg-white/6 active:scale-90 transition-all"
+        >
+          <ChevronLeft className="w-5 h-5 text-white/70" />
+        </button>
+      </div>
+
+      <div className="flex-1 flex flex-col items-center justify-center px-8 gap-10">
+        {/* Icon + title */}
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-16 h-16 rounded-2xl bg-primary/15 border border-primary/25 flex items-center justify-center">
+            <ShieldCheck className="w-8 h-8 text-primary" />
+          </div>
+          <div className="text-center">
+            <h1 className="text-xl font-black text-white">Вход в панель</h1>
+            <p className="text-white/35 text-sm mt-1">Введите PIN-код администратора</p>
+          </div>
+        </div>
+
+        {/* Dots */}
+        <div className={cn("flex gap-4 transition-all", shake && "animate-[shake_0.5s_ease-in-out]")}>
+          {[0,1,2,3].map(i => (
+            <div
+              key={i}
+              className={cn(
+                "w-4 h-4 rounded-full border-2 transition-all duration-150",
+                pin.length > i
+                  ? error ? "bg-red-500 border-red-500" : "bg-primary border-primary"
+                  : "border-white/20 bg-transparent"
+              )}
+            />
+          ))}
+        </div>
+
+        {error && (
+          <p className="text-red-400 text-sm font-bold -mt-5">Неверный PIN-код</p>
+        )}
+
+        {/* Numpad */}
+        <div className="grid grid-cols-3 gap-4 w-full max-w-[280px]">
+          {keys.map((k, i) => {
+            if (k === "") return <div key={i} />;
+            if (k === "⌫") {
+              return (
+                <button
+                  key={i}
+                  onClick={del}
+                  className="h-16 rounded-2xl bg-white/5 border border-white/8 flex items-center justify-center active:scale-90 active:bg-white/10 transition-all"
+                >
+                  <Delete className="w-5 h-5 text-white/50" />
+                </button>
+              );
+            }
+            return (
+              <button
+                key={i}
+                onClick={() => press(k)}
+                className="h-16 rounded-2xl bg-white/6 border border-white/8 font-black text-xl text-white flex items-center justify-center active:scale-90 active:bg-white/12 transition-all"
+              >
+                {k}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function Admin() {
   const [, setLocation] = useLocation();
   const tgUser = getTgUser();
   const isAdmin = ADMIN_IDS.includes(tgUser.id);
+  const [authed, setAuthed] = useState(() => sessionStorage.getItem(SESSION_KEY) === "1");
   const [tab, setTab] = useState<Tab>("dashboard");
 
+  // Non-admin: redirect immediately
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center flex-col gap-3">
-        <ShieldCheck className="w-12 h-12 text-white/10" />
-        <p className="text-white/40 text-sm">Доступ запрещён</p>
+      <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center flex-col gap-4">
+        <div className="w-16 h-16 rounded-2xl bg-white/4 border border-white/8 flex items-center justify-center">
+          <ShieldCheck className="w-8 h-8 text-white/15" />
+        </div>
+        <div className="text-center">
+          <p className="text-white/50 font-bold">Доступ запрещён</p>
+          <p className="text-white/25 text-sm mt-1">Только для администраторов</p>
+        </div>
+        <button
+          onClick={() => setLocation("/garage")}
+          className="mt-2 px-5 py-2.5 bg-white/6 border border-white/10 rounded-xl text-white/50 text-sm font-bold active:scale-95 transition-all"
+        >
+          На главную
+        </button>
       </div>
     );
+  }
+
+  // Admin but not PIN'd: show PIN screen
+  if (!authed) {
+    return <PinScreen onSuccess={() => setAuthed(true)} />;
+  }
+
+  function logout() {
+    sessionStorage.removeItem(SESSION_KEY);
+    setAuthed(false);
   }
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
@@ -557,9 +691,18 @@ export default function Admin() {
           <h1 className="text-lg font-black text-white">Админ-панель</h1>
           <p className="text-white/30 text-xs">Управление сообществом</p>
         </div>
-        <div className="ml-auto flex items-center gap-1.5 bg-primary/15 border border-primary/25 px-2.5 py-1 rounded-lg">
-          <ShieldCheck className="w-3.5 h-3.5 text-primary" />
-          <span className="text-primary text-xs font-bold">Admin</span>
+        <div className="ml-auto flex items-center gap-2">
+          <div className="flex items-center gap-1.5 bg-primary/15 border border-primary/25 px-2.5 py-1 rounded-lg">
+            <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+            <span className="text-primary text-xs font-bold">Admin</span>
+          </div>
+          <button
+            onClick={logout}
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 border border-white/8 active:scale-90 transition-all"
+            title="Выйти"
+          >
+            <LogOut className="w-3.5 h-3.5 text-white/40" />
+          </button>
         </div>
       </div>
 

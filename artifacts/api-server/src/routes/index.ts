@@ -6,6 +6,7 @@ import applicationsRouter from "./applications";
 import carsRouter from "./cars";
 import clubsRouter from "./clubs";
 import notificationsRouter from "./notifications";
+import adminRouter from "./admin";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(applicationsRouter);
 router.use(carsRouter);
 router.use(clubsRouter);
 router.use(notificationsRouter);
+router.use(adminRouter);
 
 export default router;

@@ -121,7 +121,7 @@ export default function Garage() {
                 alt="My Car"
                 className="w-full object-contain transition-opacity duration-300"
                 style={{
-                  maxHeight: "260px",
+                  maxHeight: "310px",
                   filter: "drop-shadow(0 18px 32px rgba(0,0,0,0.85)) drop-shadow(0 4px 10px rgba(0,0,0,0.6))",
                 }}
                 onError={(e) => {

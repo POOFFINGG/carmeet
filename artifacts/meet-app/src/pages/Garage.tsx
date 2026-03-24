@@ -153,7 +153,7 @@ export default function Garage() {
         </div>
 
         {/* ── Bottom info: car name + switcher ── */}
-        <div className="px-5 pb-4 flex-shrink-0">
+        <div className="px-5 pb-28 flex-shrink-0">
 
           {activeCar && (
             <div className="mb-3">

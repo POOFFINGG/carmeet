@@ -67,8 +67,54 @@ export default function Garage() {
       <div className="absolute inset-0 pointer-events-none"
         style={{ background: "linear-gradient(to bottom, rgba(13,13,13,0.6) 0%, transparent 30%, transparent 55%, rgba(13,13,13,0.92) 100%)" }} />
 
+      {/* ── Car — absolutely centered on the full screen ── */}
+      <div className="absolute inset-0 z-10 flex items-center justify-center px-6 pointer-events-none">
+        {!carsLoading && activeCar ? (
+          <div className="relative w-full pointer-events-auto">
+            <img
+              key={activeCar?.id}
+              src={carDisplayUrl}
+              alt="My Car"
+              className="w-full object-contain transition-opacity duration-300"
+              style={{
+                maxHeight: "320px",
+                filter: "drop-shadow(0 20px 40px rgba(0,0,0,0.9)) drop-shadow(0 4px 12px rgba(0,0,0,0.7))",
+              }}
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = `${import.meta.env.BASE_URL}images/default-car.png`;
+              }}
+            />
+            {showAiBadge && activeCar && (
+              <div className="absolute top-0 right-0">
+                <span className={cn(
+                  "text-[10px] font-bold px-2.5 py-1 rounded-lg border",
+                  AI_STATUS_BADGE[activeCar.aiStatus]?.color ?? "bg-white/10 text-white/50 border-white/10"
+                )}>
+                  {AI_STATUS_BADGE[activeCar.aiStatus]?.label ?? activeCar.aiStatus}
+                </span>
+              </div>
+            )}
+          </div>
+        ) : !carsLoading && user?.role === "viewer" ? (
+          <div className="flex flex-col items-center justify-center gap-3 pointer-events-auto">
+            <Car className="w-16 h-16 text-white/15" />
+            <p className="text-white/30 text-sm">Режим зрителя</p>
+          </div>
+        ) : !carsLoading ? (
+          <button
+            onClick={() => setLocation("/settings/car/new")}
+            className="flex flex-col items-center gap-3 active:scale-95 transition-all pointer-events-auto"
+          >
+            <div className="w-20 h-20 rounded-full border-2 border-dashed border-white/20 flex items-center justify-center">
+              <Plus className="w-7 h-7 text-white/25" />
+            </div>
+            <p className="text-white/30 text-sm font-bold">Добавить авто</p>
+          </button>
+        ) : null}
+      </div>
+
       {/* ── Main content layer ── */}
-      <div className="relative z-10 flex-1 flex flex-col">
+      <div className="relative z-20 flex-1 flex flex-col">
 
         {/* Topbar */}
         <div className="pt-12 px-5 flex items-center justify-between flex-shrink-0">
@@ -106,51 +152,8 @@ export default function Garage() {
           </button>
         </div>
 
-        {/* ── Car — centered in remaining space ── */}
-        <div className="flex-1 flex items-center justify-center px-6 py-4">
-          {!carsLoading && activeCar ? (
-            <div className="relative w-full">
-              <img
-                key={activeCar?.id}
-                src={carDisplayUrl}
-                alt="My Car"
-                className="w-full object-contain transition-opacity duration-300"
-                style={{
-                  maxHeight: "320px",
-                  filter: "drop-shadow(0 20px 40px rgba(0,0,0,0.9)) drop-shadow(0 4px 12px rgba(0,0,0,0.7))",
-                }}
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = `${import.meta.env.BASE_URL}images/default-car.png`;
-                }}
-              />
-              {showAiBadge && activeCar && (
-                <div className="absolute top-0 right-0">
-                  <span className={cn(
-                    "text-[10px] font-bold px-2.5 py-1 rounded-lg border",
-                    AI_STATUS_BADGE[activeCar.aiStatus]?.color ?? "bg-white/10 text-white/50 border-white/10"
-                  )}>
-                    {AI_STATUS_BADGE[activeCar.aiStatus]?.label ?? activeCar.aiStatus}
-                  </span>
-                </div>
-              )}
-            </div>
-          ) : !carsLoading && user?.role === "viewer" ? (
-            <div className="flex flex-col items-center justify-center gap-3">
-              <Car className="w-16 h-16 text-white/15" />
-              <p className="text-white/30 text-sm">Режим зрителя</p>
-            </div>
-          ) : !carsLoading ? (
-            <button
-              onClick={() => setLocation("/settings/car/new")}
-              className="flex flex-col items-center gap-3 active:scale-95 transition-all"
-            >
-              <div className="w-20 h-20 rounded-full border-2 border-dashed border-white/20 flex items-center justify-center">
-                <Plus className="w-7 h-7 text-white/25" />
-              </div>
-              <p className="text-white/30 text-sm font-bold">Добавить авто</p>
-            </button>
-          ) : null}
-        </div>
+        {/* Spacer — pushes bottom info down; car is rendered absolutely above */}
+        <div className="flex-1" />
 
         {/* ── Bottom info: car name + switcher ── */}
         <div className="px-5 pb-28 flex-shrink-0">

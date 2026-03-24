@@ -105,10 +105,10 @@ export default function Garage() {
             onClick={() => setLocation("/settings/car/new")}
             className="flex flex-col items-center gap-3 active:scale-95 transition-all pointer-events-auto"
           >
-            <div className="w-20 h-20 rounded-full border-2 border-dashed border-white/20 flex items-center justify-center">
-              <Plus className="w-7 h-7 text-white/25" />
+            <div className="w-20 h-20 rounded-full border-2 border-dashed border-white/60 flex items-center justify-center">
+              <Plus className="w-7 h-7 text-white/70" />
             </div>
-            <p className="text-white/30 text-sm font-bold">Добавить авто</p>
+            <p className="text-white/70 text-sm font-bold">Добавить авто</p>
           </button>
         ) : null}
       </div>

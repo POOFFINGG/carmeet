@@ -32,8 +32,8 @@ export default function Garage() {
   const showAiBadge = activeCar?.aiStatus && activeCar.aiStatus !== "none" && activeCar.aiStatus !== "generating";
   const carDisplayUrl =
     activeCar?.aiStatus === "approved" || activeCar?.aiStatus === "pending_moderation" || activeCar?.aiStatus === "result_ready"
-      ? (activeCar.aiStyledImageUrl || `${import.meta.env.BASE_URL}images/default-car.png`)
-      : `${import.meta.env.BASE_URL}images/default-car.png`;
+      ? (activeCar.aiStyledImageUrl || `${import.meta.env.BASE_URL}new-angle.png`)
+      : `${import.meta.env.BASE_URL}new-angle.png`;
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -81,7 +81,7 @@ export default function Garage() {
                 filter: "drop-shadow(0 20px 40px rgba(0,0,0,0.9)) drop-shadow(0 4px 12px rgba(0,0,0,0.7))",
               }}
               onError={(e) => {
-                (e.target as HTMLImageElement).src = `${import.meta.env.BASE_URL}images/default-car.png`;
+                (e.target as HTMLImageElement).src = `${import.meta.env.BASE_URL}new-angle.png`;
               }}
             />
             {showAiBadge && activeCar && (

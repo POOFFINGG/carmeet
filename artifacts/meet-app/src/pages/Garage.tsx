@@ -68,9 +68,9 @@ export default function Garage() {
         style={{ background: "linear-gradient(to bottom, rgba(13,13,13,0.6) 0%, transparent 30%, transparent 55%, rgba(13,13,13,0.92) 100%)" }} />
 
       {/* ── Car — absolutely centered on the full screen ── */}
-      <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none overflow-hidden">
+      <div className="absolute inset-0 z-10 flex items-center justify-center px-4 pointer-events-none">
         {!carsLoading && activeCar ? (
-          <div className="relative pointer-events-auto" style={{ width: "130%", marginLeft: "-15%", marginRight: "-15%" }}>
+          <div className="relative w-full pointer-events-auto">
             <img
               key={activeCar?.id}
               src={carDisplayUrl}

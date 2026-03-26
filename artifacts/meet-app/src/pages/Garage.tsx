@@ -68,16 +68,16 @@ export default function Garage() {
         style={{ background: "linear-gradient(to bottom, rgba(13,13,13,0.6) 0%, transparent 30%, transparent 55%, rgba(13,13,13,0.92) 100%)" }} />
 
       {/* ── Car — absolutely centered on the full screen ── */}
-      <div className="absolute inset-0 z-10 flex items-center justify-center px-2 pointer-events-none">
+      <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none overflow-hidden">
         {!carsLoading && activeCar ? (
-          <div className="relative w-full pointer-events-auto">
+          <div className="relative pointer-events-auto" style={{ width: "130%", marginLeft: "-15%", marginRight: "-15%" }}>
             <img
               key={activeCar?.id}
               src={carDisplayUrl}
               alt="My Car"
               className="w-full object-contain transition-opacity duration-300"
               style={{
-                maxHeight: "65vh",
+                maxHeight: "75vh",
                 filter: "drop-shadow(0 20px 40px rgba(0,0,0,0.9)) drop-shadow(0 4px 12px rgba(0,0,0,0.7))",
               }}
               onError={(e) => {

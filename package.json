@@ -9,6 +9,21 @@
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
   },
   "private": true,
+  "pnpm": {
+    "onlyBuiltDependencies": ["sharp", "esbuild"],
+    "supportedArchitectures": {
+      "os": ["win32", "linux", "darwin"],
+      "cpu": ["x64", "arm64"]
+    }
+  },
+  "optionalDependencies": {
+    "@esbuild/win32-x64": "0.27.3",
+    "@rollup/rollup-win32-x64-msvc": "4.60.0",
+    "@rollup/rollup-win32-x64-gnu": "4.60.0",
+    "lightningcss-win32-x64-msvc": "1.32.0",
+    "@tailwindcss/oxide-win32-x64-msvc": "4.2.2",
+    "@img/sharp-win32-x64": "0.33.5"
+  },
   "devDependencies": {
     "typescript": "~5.9.2",
     "prettier": "^3.8.1"

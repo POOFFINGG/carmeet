@@ -18,24 +18,37 @@ import { getTgUser } from "@/lib/utils";
 
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
-function useCountdown(targetDate: string) {
+function useCountdown(startDate: string, endDate?: string | null) {
   const [timeLeft, setTimeLeft] = useState("");
 
   useEffect(() => {
     function calc() {
-      const diff = new Date(targetDate).getTime() - Date.now();
-      if (diff <= 0) { setTimeLeft("Идёт сейчас"); return; }
-      const d = Math.floor(diff / 86400000);
-      const h = Math.floor((diff % 86400000) / 3600000);
-      const m = Math.floor((diff % 3600000) / 60000);
-      if (d > 0) setTimeLeft(`${d}д ${h}ч`);
-      else if (h > 0) setTimeLeft(`${h}ч ${m}м`);
-      else setTimeLeft(`${m}м`);
+      const now = Date.now();
+      const start = new Date(startDate).getTime();
+      const end = endDate ? new Date(endDate).getTime() : null;
+
+      if (now < start) {
+        const diff = start - now;
+        const d = Math.floor(diff / 86400000);
+        const h = Math.floor((diff % 86400000) / 3600000);
+        const m = Math.floor((diff % 3600000) / 60000);
+        if (d > 0) setTimeLeft(`Начнётся через ${d}д ${h}ч`);
+        else if (h > 0) setTimeLeft(`Начнётся через ${h}ч ${m}м`);
+        else setTimeLeft(`Начнётся через ${m}м`);
+      } else if (end && now < end) {
+        const diff = end - now;
+        const h = Math.floor(diff / 3600000);
+        const m = Math.floor((diff % 3600000) / 60000);
+        if (h > 0) setTimeLeft(`Идёт ещё ${h}ч ${m}м`);
+        else setTimeLeft(`Идёт ещё ${m}м`);
+      } else {
+        setTimeLeft("Идёт сейчас");
+      }
     }
     calc();
     const t = setInterval(calc, 60000);
     return () => clearInterval(t);
-  }, [targetDate]);
+  }, [startDate, endDate]);
 
   return timeLeft;
 }
@@ -55,7 +68,7 @@ export default function EventDetail() {
   const { mutateAsync: apply, isPending: isApplying } = useApplyToEvent();
   const { mutateAsync: cancel, isPending: isCancelling } = useCancelApplication();
 
-  const countdown = useCountdown(event?.date || "");
+  const countdown = useCountdown(event?.date || "", event?.endDate);
 
   const myApp = myApps?.find(a => a.eventId === eventId);
   const primaryCar = cars?.find(c => c.isPrimary) || cars?.[0];
@@ -291,6 +304,26 @@ export default function EventDetail() {
                       <p className="text-white/40 text-xs truncate">{app.carMake} {app.carModel}</p>
                     )}
                   </div>
+                  <div className="flex items-center flex-shrink-0">
+                    {app.attendanceStatus === "going" && (
+                      <span className="flex items-center">
+                        <CheckCircle2 className="w-4 h-4 text-green-400 -mr-1.5" />
+                        <CheckCircle2 className="w-4 h-4 text-green-400" />
+                      </span>
+                    )}
+                    {app.attendanceStatus === "thinking" && (
+                      <span className="flex items-center">
+                        <CheckCircle2 className="w-4 h-4 text-yellow-400 -mr-1.5" />
+                        <CheckCircle2 className="w-4 h-4 text-yellow-400" />
+                      </span>
+                    )}
+                    {app.attendanceStatus === "not_going" && (
+                      <span className="flex items-center">
+                        <CheckCircle2 className="w-4 h-4 text-red-400 -mr-1.5" />
+                        <CheckCircle2 className="w-4 h-4 text-red-400" />
+                      </span>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -316,13 +349,28 @@ export default function EventDetail() {
                 myApp.attendanceStatus === "thinking" ? "bg-yellow-500/10 border-yellow-500/30" :
                 "bg-red-500/10 border-red-500/30"
               )}>
-                {myApp.attendanceStatus === "going" && <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0" />}
-                {myApp.attendanceStatus === "thinking" && <HelpCircle className="w-5 h-5 text-yellow-400 flex-shrink-0" />}
-                {myApp.attendanceStatus === "not_going" && <XCircle className="w-5 h-5 text-red-400 flex-shrink-0" />}
+                {myApp.attendanceStatus === "going" && (
+                  <span className="flex items-center flex-shrink-0">
+                    <CheckCircle2 className="w-4.5 h-4.5 text-green-400 -mr-1" />
+                    <CheckCircle2 className="w-4.5 h-4.5 text-green-400" />
+                  </span>
+                )}
+                {myApp.attendanceStatus === "thinking" && (
+                  <span className="flex items-center flex-shrink-0">
+                    <CheckCircle2 className="w-4.5 h-4.5 text-yellow-400 -mr-1" />
+                    <CheckCircle2 className="w-4.5 h-4.5 text-yellow-400" />
+                  </span>
+                )}
+                {myApp.attendanceStatus === "not_going" && (
+                  <span className="flex items-center flex-shrink-0">
+                    <CheckCircle2 className="w-4.5 h-4.5 text-red-400 -mr-1" />
+                    <CheckCircle2 className="w-4.5 h-4.5 text-red-400" />
+                  </span>
+                )}
                 <div className="flex-1">
                   <p className="text-white text-sm font-bold">
-                    {myApp.attendanceStatus === "going" ? "Пойду" :
-                     myApp.attendanceStatus === "thinking" ? "Думаю" : "Не пойду"}
+                    {myApp.attendanceStatus === "going" ? "Точно буду" :
+                     myApp.attendanceStatus === "thinking" ? "Пока не знаю" : "Принят, но не приеду"}
                   </p>
                   <p className="text-white/40 text-xs">
                     Статус: {myApp.status === "approved" ? "Одобрено" : myApp.status === "rejected" ? "Отклонено" : "На рассмотрении"}
@@ -350,7 +398,7 @@ export default function EventDetail() {
                       : "bg-white/5 border-white/10 text-white/60 active:scale-95"
                   )}
                 >
-                  Пойду
+                  Точно буду
                 </button>
                 <button
                   onClick={() => applyAs(myApp.type as "participant" | "viewer", "thinking")}
@@ -362,7 +410,7 @@ export default function EventDetail() {
                       : "bg-white/5 border-white/10 text-white/60 active:scale-95"
                   )}
                 >
-                  Думаю
+                  Не знаю
                 </button>
                 <button
                   onClick={() => applyAs(myApp.type as "participant" | "viewer", "not_going")}
@@ -374,7 +422,7 @@ export default function EventDetail() {
                       : "bg-white/5 border-white/10 text-white/60 active:scale-95"
                   )}
                 >
-                  Не пойду
+                  Не приеду
                 </button>
               </div>
             </div>
@@ -403,7 +451,7 @@ export default function EventDetail() {
                 </Button>
               )}
 
-              {/* Думаю / Не пойду */}
+              {/* Не знаю / Не приеду */}
               <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => applyAs("viewer", "thinking")}
@@ -411,7 +459,7 @@ export default function EventDetail() {
                   className="py-3 rounded-xl text-sm font-bold bg-white/5 border border-white/10 text-white/60 active:scale-95 transition-all"
                 >
                   <HelpCircle className="w-4 h-4 inline mr-1.5" />
-                  Думаю
+                  Пока не знаю
                 </button>
                 <button
                   onClick={() => applyAs("viewer", "not_going")}
@@ -419,7 +467,7 @@ export default function EventDetail() {
                   className="py-3 rounded-xl text-sm font-bold bg-white/5 border border-white/10 text-white/60 active:scale-95 transition-all"
                 >
                   <XCircle className="w-4 h-4 inline mr-1.5" />
-                  Не пойду
+                  Не приеду
                 </button>
               </div>
             </div>

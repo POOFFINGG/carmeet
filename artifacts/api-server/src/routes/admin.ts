@@ -10,20 +10,24 @@ const router: IRouter = Router();
 const ADMIN_USERNAME = process.env["ADMIN_USERNAME"] ?? "admin";
 const ADMIN_PASSWORD = process.env["ADMIN_PASSWORD"] ?? "meet2025";
 
-// ── In-memory session store (token → expiry timestamp) ────────────────────────
-const sessions = new Map<string, number>();
-const SESSION_TTL_MS = 8 * 60 * 60 * 1000; // 8 hours
-
+// ── Deterministic HMAC token — survives server restarts ──────────────────────
+// Token = HMAC-SHA256(username:password, secret). No memory store needed.
 function createToken(): string {
-  return crypto.randomBytes(32).toString("hex");
+  const secret = process.env["ADMIN_TOKEN_SECRET"] ?? "meet-admin-secret-2025";
+  return crypto
+    .createHmac("sha256", secret)
+    .update(`${ADMIN_USERNAME}:${ADMIN_PASSWORD}`)
+    .digest("hex");
 }
 
 function isValidToken(token: string | undefined): boolean {
   if (!token) return false;
-  const exp = sessions.get(token);
-  if (!exp) return false;
-  if (Date.now() > exp) { sessions.delete(token); return false; }
-  return true;
+  const expected = createToken();
+  try {
+    return crypto.timingSafeEqual(Buffer.from(token, "hex"), Buffer.from(expected, "hex"));
+  } catch {
+    return false;
+  }
 }
 
 function forbidden(res: any) {
@@ -46,14 +50,12 @@ router.post("/admin/login", (req, res) => {
   }
 
   const token = createToken();
-  sessions.set(token, Date.now() + SESSION_TTL_MS);
   res.json({ token });
 });
 
-// ── POST /admin/logout ────────────────────────────────────────────────────────
-router.post("/admin/logout", (req, res) => {
-  const token = req.headers["x-admin-token"] as string | undefined;
-  if (token) sessions.delete(token);
+// ── POST /admin/logout ─────────────────────────────────────────────────────────
+router.post("/admin/logout", (_req, res) => {
+  // Token is stateless (HMAC) — frontend clears it from sessionStorage
   res.json({ ok: true });
 });
 

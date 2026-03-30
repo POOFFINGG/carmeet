@@ -88,9 +88,12 @@ const CAT_LABELS: Record<string, string> = {
   club: "Клуб",
 };
 
-function adminFetch(path: string, opts?: RequestInit) {
+// Emits a custom event when admin token is rejected so the main component can force re-login
+const UNAUTH_EVENT = "admin:unauthorized";
+
+async function adminFetch(path: string, opts?: RequestInit): Promise<Response> {
   const token = sessionStorage.getItem(TOKEN_KEY) ?? "";
-  return fetch(`${BASE_URL}${path}`, {
+  const res = await fetch(`${BASE_URL}${path}`, {
     ...opts,
     headers: {
       "Content-Type": "application/json",
@@ -98,6 +101,10 @@ function adminFetch(path: string, opts?: RequestInit) {
       ...(opts?.headers ?? {}),
     },
   });
+  if (res.status === 401 || res.status === 403) {
+    window.dispatchEvent(new Event(UNAUTH_EVENT));
+  }
+  return res;
 }
 
 // ── Login screen ──────────────────────────────────────────────────────────────
@@ -622,6 +629,16 @@ export default function Admin() {
   const [, setLocation] = useLocation();
   const [token, setToken] = useState<string | null>(() => sessionStorage.getItem(TOKEN_KEY));
   const [tab, setTab] = useState<Tab>("dashboard");
+
+  // Auto-logout when any fetch receives 401/403
+  useEffect(() => {
+    function handleUnauth() {
+      sessionStorage.removeItem(TOKEN_KEY);
+      setToken(null);
+    }
+    window.addEventListener(UNAUTH_EVENT, handleUnauth);
+    return () => window.removeEventListener(UNAUTH_EVENT, handleUnauth);
+  }, []);
 
   // Not logged in — show login screen
   if (!token) {

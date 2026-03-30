@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
-import { applicationsTable, usersTable, eventsTable, carsTable } from "@workspace/db/schema";
-import { eq, and } from "drizzle-orm";
+import { applicationsTable, usersTable, eventsTable, carsTable, notificationsTable } from "@workspace/db/schema";
+import { eq, and, inArray } from "drizzle-orm";
 
 const router: IRouter = Router();
 
@@ -12,129 +12,170 @@ async function getUserFromRequest(req: any): Promise<number | null> {
   return users.length > 0 ? users[0].id : null;
 }
 
-async function formatApplication(app: any) {
-  const user = await db.select({ displayName: usersTable.displayName, avatarUrl: usersTable.avatarUrl }).from(usersTable).where(eq(usersTable.id, app.userId)).limit(1);
-  const event = await db.select({ title: eventsTable.title }).from(eventsTable).where(eq(eventsTable.id, app.eventId)).limit(1);
-  let car = null;
-  if (app.carId) {
-    const cars = await db.select({ make: carsTable.make, model: carsTable.model }).from(carsTable).where(eq(carsTable.id, app.carId)).limit(1);
-    car = cars[0] || null;
-  }
+// Single JOIN query — no N+1
+async function getApplicationsWithDetails(where: Parameters<typeof db.select>[0] extends never ? never : any) {
+  const rows = await db
+    .select({
+      id: applicationsTable.id,
+      eventId: applicationsTable.eventId,
+      userId: applicationsTable.userId,
+      carId: applicationsTable.carId,
+      type: applicationsTable.type,
+      status: applicationsTable.status,
+      attendanceStatus: applicationsTable.attendanceStatus,
+      comment: applicationsTable.comment,
+      createdAt: applicationsTable.createdAt,
+      userName: usersTable.displayName,
+      userAvatarUrl: usersTable.avatarUrl,
+      eventTitle: eventsTable.title,
+      carMake: carsTable.make,
+      carModel: carsTable.model,
+    })
+    .from(applicationsTable)
+    .innerJoin(usersTable, eq(applicationsTable.userId, usersTable.id))
+    .innerJoin(eventsTable, eq(applicationsTable.eventId, eventsTable.id))
+    .leftJoin(carsTable, eq(applicationsTable.carId, carsTable.id))
+    .where(where);
 
-  return {
-    id: app.id,
-    eventId: app.eventId,
-    eventTitle: event[0]?.title || null,
-    userId: app.userId,
-    userName: user[0]?.displayName || null,
-    userAvatarUrl: user[0]?.avatarUrl || null,
-    carId: app.carId,
-    carMake: car?.make || null,
-    carModel: car?.model || null,
-    type: app.type,
-    status: app.status,
-    attendanceStatus: app.attendanceStatus || "going",
-    comment: app.comment,
-    createdAt: app.createdAt.toISOString(),
-  };
+  return rows.map(r => ({
+    id: r.id,
+    eventId: r.eventId,
+    eventTitle: r.eventTitle,
+    userId: r.userId,
+    userName: r.userName,
+    userAvatarUrl: r.userAvatarUrl,
+    carId: r.carId,
+    carMake: r.carMake ?? null,
+    carModel: r.carModel ?? null,
+    type: r.type,
+    status: r.status,
+    attendanceStatus: r.attendanceStatus ?? "going",
+    comment: r.comment,
+    createdAt: r.createdAt.toISOString(),
+  }));
 }
 
+async function createNotification(
+  userId: number,
+  type: "application_approved" | "application_rejected" | "event_reminder" | "new_event" | "event_cancelled",
+  title: string,
+  message: string,
+  eventId?: number,
+) {
+  await db.insert(notificationsTable).values({ userId, type, title, message, eventId: eventId ?? null });
+}
+
+// GET /api/events/:eventId/applications
 router.get("/events/:eventId/applications", async (req, res) => {
   const userId = await getUserFromRequest(req);
-  if (!userId) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   const eventId = parseInt(req.params.eventId);
-  if (isNaN(eventId)) {
-    res.status(400).json({ error: "Invalid event ID" });
-    return;
-  }
+  if (isNaN(eventId)) { res.status(400).json({ error: "Invalid event ID" }); return; }
 
-  const apps = await db.select().from(applicationsTable).where(eq(applicationsTable.eventId, eventId));
-  const result = await Promise.all(apps.map(formatApplication));
+  const result = await getApplicationsWithDetails(eq(applicationsTable.eventId, eventId));
   res.json(result);
 });
 
+// POST /api/events/:eventId/applications — apply or update attendance status
 router.post("/events/:eventId/applications", async (req, res) => {
   const userId = await getUserFromRequest(req);
-  if (!userId) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   const eventId = parseInt(req.params.eventId);
-  if (isNaN(eventId)) {
-    res.status(400).json({ error: "Invalid event ID" });
-    return;
-  }
+  if (isNaN(eventId)) { res.status(400).json({ error: "Invalid event ID" }); return; }
 
   const { carId, type, attendanceStatus, comment } = req.body;
-  if (!type) {
-    res.status(400).json({ error: "Missing type field" });
-    return;
-  }
+  if (!type) { res.status(400).json({ error: "Missing type field" }); return; }
 
-  const existing = await db.select().from(applicationsTable).where(and(eq(applicationsTable.eventId, eventId), eq(applicationsTable.userId, userId))).limit(1);
+  const existing = await db
+    .select()
+    .from(applicationsTable)
+    .where(and(eq(applicationsTable.eventId, eventId), eq(applicationsTable.userId, userId)))
+    .limit(1);
 
   if (existing.length > 0) {
+    // Update existing — user changing their attendance status
     const updated = await db
       .update(applicationsTable)
       .set({
         type,
-        carId: carId || null,
-        attendanceStatus: attendanceStatus || "going",
-        comment: comment || null,
+        carId: carId ?? null,
+        attendanceStatus: attendanceStatus ?? "going",
+        comment: comment ?? null,
       })
       .where(eq(applicationsTable.id, existing[0].id))
       .returning();
-    const result = await formatApplication(updated[0]);
+
+    const [result] = await getApplicationsWithDetails(eq(applicationsTable.id, updated[0].id));
     res.json(result);
     return;
   }
 
-  const event = await db.select({ autoAccept: eventsTable.autoAccept }).from(eventsTable).where(eq(eventsTable.id, eventId)).limit(1);
-  const autoAccept = event[0]?.autoAccept ?? false;
+  // New application
+  const [event] = await db
+    .select({ autoAccept: eventsTable.autoAccept, organizerId: eventsTable.organizerId, title: eventsTable.title })
+    .from(eventsTable)
+    .where(eq(eventsTable.id, eventId))
+    .limit(1);
 
-  const inserted = await db.insert(applicationsTable).values({
+  if (!event) { res.status(404).json({ error: "Event not found" }); return; }
+
+  const autoAccept = event.autoAccept ?? false;
+  const status = autoAccept ? "approved" : "pending";
+
+  const [inserted] = await db.insert(applicationsTable).values({
     eventId,
     userId,
-    carId: carId || null,
+    carId: carId ?? null,
     type,
-    attendanceStatus: attendanceStatus || "going",
-    status: autoAccept ? "approved" : "pending",
-    comment: comment || null,
+    attendanceStatus: attendanceStatus ?? "going",
+    status,
+    comment: comment ?? null,
   }).returning();
 
-  const result = await formatApplication(inserted[0]);
+  // Notify organizer about new application (only if not auto-accepted)
+  if (!autoAccept) {
+    const [applicant] = await db
+      .select({ displayName: usersTable.displayName })
+      .from(usersTable)
+      .where(eq(usersTable.id, userId))
+      .limit(1);
+
+    await createNotification(
+      event.organizerId,
+      "new_event",
+      "Новая заявка",
+      `${applicant?.displayName ?? "Пользователь"} подал заявку на участие в «${event.title}»`,
+      eventId,
+    );
+  }
+
+  const [result] = await getApplicationsWithDetails(eq(applicationsTable.id, inserted.id));
   res.status(201).json(result);
 });
 
+// PUT /api/events/:eventId/applications/:applicationId — organizer approve/reject
 router.put("/events/:eventId/applications/:applicationId", async (req, res) => {
   const userId = await getUserFromRequest(req);
-  if (!userId) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   const eventId = parseInt(req.params.eventId);
   const applicationId = parseInt(req.params.applicationId);
-  if (isNaN(eventId) || isNaN(applicationId)) {
-    res.status(400).json({ error: "Invalid ID" });
-    return;
-  }
+  if (isNaN(eventId) || isNaN(applicationId)) { res.status(400).json({ error: "Invalid ID" }); return; }
 
-  const event = await db.select({ organizerId: eventsTable.organizerId }).from(eventsTable).where(eq(eventsTable.id, eventId)).limit(1);
-  if (event.length === 0) {
-    res.status(404).json({ error: "Event not found" });
-    return;
-  }
+  const [event] = await db
+    .select({ organizerId: eventsTable.organizerId, title: eventsTable.title })
+    .from(eventsTable)
+    .where(eq(eventsTable.id, eventId))
+    .limit(1);
+
+  if (!event) { res.status(404).json({ error: "Event not found" }); return; }
 
   const { status, attendanceStatus } = req.body;
   const updateData: any = {};
 
-  if (status && event[0].organizerId === userId) {
+  if (status && event.organizerId === userId) {
     updateData.status = status;
   }
   if (attendanceStatus) {
@@ -146,51 +187,80 @@ router.put("/events/:eventId/applications/:applicationId", async (req, res) => {
     return;
   }
 
-  const updated = await db.update(applicationsTable).set(updateData).where(eq(applicationsTable.id, applicationId)).returning();
-  if (updated.length === 0) {
-    res.status(404).json({ error: "Application not found" });
-    return;
+  // Fetch app before update to compare status
+  const [appBefore] = await db
+    .select({ userId: applicationsTable.userId, status: applicationsTable.status })
+    .from(applicationsTable)
+    .where(eq(applicationsTable.id, applicationId))
+    .limit(1);
+
+  const [updated] = await db
+    .update(applicationsTable)
+    .set(updateData)
+    .where(eq(applicationsTable.id, applicationId))
+    .returning();
+
+  if (!updated) { res.status(404).json({ error: "Application not found" }); return; }
+
+  // Send notification to applicant if status changed
+  if (status && appBefore && appBefore.status !== status) {
+    if (status === "approved") {
+      await createNotification(
+        appBefore.userId,
+        "application_approved",
+        "Заявка одобрена",
+        `Ваша заявка на участие в «${event.title}» одобрена!`,
+        eventId,
+      );
+    } else if (status === "rejected") {
+      await createNotification(
+        appBefore.userId,
+        "application_rejected",
+        "Заявка отклонена",
+        `Ваша заявка на участие в «${event.title}» отклонена.`,
+        eventId,
+      );
+    }
   }
 
-  const result = await formatApplication(updated[0]);
+  const [result] = await getApplicationsWithDetails(eq(applicationsTable.id, updated.id));
   res.json(result);
 });
 
+// DELETE /api/events/:eventId/applications/:applicationId
 router.delete("/events/:eventId/applications/:applicationId", async (req, res) => {
   const userId = await getUserFromRequest(req);
-  if (!userId) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   const eventId = parseInt(req.params.eventId);
   const applicationId = parseInt(req.params.applicationId);
-  if (isNaN(applicationId)) {
-    res.status(400).json({ error: "Invalid ID" });
-    return;
-  }
+  if (isNaN(applicationId)) { res.status(400).json({ error: "Invalid ID" }); return; }
 
-  const event = await db.select({ organizerId: eventsTable.organizerId }).from(eventsTable).where(eq(eventsTable.id, eventId)).limit(1);
-  const isOrganizer = event[0]?.organizerId === userId;
+  const [event] = await db
+    .select({ organizerId: eventsTable.organizerId })
+    .from(eventsTable)
+    .where(eq(eventsTable.id, eventId))
+    .limit(1);
+
+  const isOrganizer = event?.organizerId === userId;
 
   if (isOrganizer) {
     await db.delete(applicationsTable).where(eq(applicationsTable.id, applicationId));
   } else {
-    await db.delete(applicationsTable).where(and(eq(applicationsTable.id, applicationId), eq(applicationsTable.userId, userId)));
+    await db.delete(applicationsTable).where(
+      and(eq(applicationsTable.id, applicationId), eq(applicationsTable.userId, userId)),
+    );
   }
 
   res.json({ success: true });
 });
 
+// GET /api/users/me/applications
 router.get("/users/me/applications", async (req, res) => {
   const userId = await getUserFromRequest(req);
-  if (!userId) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
-  const apps = await db.select().from(applicationsTable).where(eq(applicationsTable.userId, userId));
-  const result = await Promise.all(apps.map(formatApplication));
+  const result = await getApplicationsWithDetails(eq(applicationsTable.userId, userId));
   res.json(result);
 });
 

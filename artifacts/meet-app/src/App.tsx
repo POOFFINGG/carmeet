@@ -70,7 +70,6 @@ function Router() {
       <Route path="/profile" component={Profile} />
       <Route path="/notifications" component={Notifications} />
       <Route path="/settings" component={Settings} />
-      <Route path="/settings/car/new" component={EditCar} />
       <Route path="/settings/car/:carId" component={EditCar} />
       <Route path="/settings/car" component={EditCar} />
       <Route path="/admin" component={Admin} />

@@ -2,11 +2,11 @@ import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { carsTable, usersTable } from "@workspace/db/schema";
 import { eq, and } from "drizzle-orm";
+import { processCarPhoto } from "../services/garage-render";
 
 const router: IRouter = Router();
 
-const ADMIN_IDS = ["1000001", "tg_123456789"];
-const MAX_AI_ATTEMPTS = 3;
+const MAX_AI_ATTEMPTS = Infinity;
 
 async function getUserFromRequest(req: any): Promise<number | null> {
   const telegramId = req.headers["x-telegram-id"] as string;
@@ -102,7 +102,7 @@ router.put("/cars/:carId", async (req, res) => {
   res.json(formatCar(updated[0]));
 });
 
-// POST /api/cars/:carId/generate — trigger AI generation (mocked)
+// POST /api/cars/:carId/generate — trigger AI generation (real pipeline)
 router.post("/cars/:carId/generate", async (req, res) => {
   const userId = await getUserFromRequest(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
@@ -119,25 +119,50 @@ router.post("/cars/:carId/generate", async (req, res) => {
     return;
   }
 
-  // Save source photos from request
   const { sourcePhotos } = req.body;
+  const photos: string[] = sourcePhotos || [];
+  const firstPhoto = photos.find((p: string) => p && p.length > 0);
 
-  // Increment attempt count and store source photos
+  if (!firstPhoto) {
+    res.status(400).json({ error: "Загрузите хотя бы одно фото" });
+    return;
+  }
+
+  // Mark as generating
   await db.update(carsTable).set({
     aiGenerationAttempts: attempts + 1,
-    sourcePhotos: sourcePhotos || car.sourcePhotos,
+    sourcePhotos: photos,
     aiStatus: "generating",
   }).where(eq(carsTable.id, carId));
 
-  // In production this would call an AI API. For now we return a mock result after a short delay.
-  // The generated image URL is stored after calling the AI API.
-  // We return the current attempt count and a "processing" status.
-  res.json({
-    attemptsUsed: attempts + 1,
-    attemptsLeft: MAX_AI_ATTEMPTS - (attempts + 1),
-    status: "processing",
-    carId,
-  });
+  try {
+    // Run the full pipeline: normalize angle → remove bg → compose in garage
+    const resultUrl = await processCarPhoto(firstPhoto);
+
+    // Save result
+    const updated = await db.update(carsTable).set({
+      aiStyledImageUrl: resultUrl,
+      aiStatus: "result_ready",
+    }).where(eq(carsTable.id, carId)).returning();
+
+    res.json({
+      ...formatCar(updated[0]),
+      attemptsUsed: attempts + 1,
+      attemptsLeft: MAX_AI_ATTEMPTS - (attempts + 1),
+    });
+  } catch (err: any) {
+    console.error("AI generation failed:", err);
+    // Revert status on failure (don't consume the attempt)
+    await db.update(carsTable).set({
+      aiGenerationAttempts: attempts,
+      aiStatus: car.aiStatus ?? "none",
+    }).where(eq(carsTable.id, carId));
+
+    res.status(500).json({
+      error: "Не удалось обработать фото. Попробуйте другое.",
+      details: err.message,
+    });
+  }
 });
 
 // POST /api/cars/:carId/ai-result — store the AI result (called by client after mock generation)
@@ -190,60 +215,6 @@ router.post("/cars/:carId/use-silhouette", async (req, res) => {
     silhouetteColor: silhouetteColor || "#e53935",
   }).where(eq(carsTable.id, carId)).returning();
 
-  res.json(formatCar(updated[0]));
-});
-
-// ── ADMIN ROUTES ──────────────────────────────────────────────────────────────
-
-// GET /api/admin/moderation — list cars pending moderation
-router.get("/admin/moderation", async (req, res) => {
-  const telegramId = req.headers["x-telegram-id"] as string;
-  if (!ADMIN_IDS.includes(telegramId)) {
-    res.status(403).json({ error: "Forbidden" });
-    return;
-  }
-
-  const cars = await db
-    .select({
-      car: carsTable,
-      username: usersTable.username,
-      displayName: usersTable.displayName,
-    })
-    .from(carsTable)
-    .innerJoin(usersTable, eq(carsTable.userId, usersTable.id))
-    .where(eq(carsTable.aiStatus, "pending_moderation"));
-
-  res.json(cars.map(row => ({
-    ...formatCar(row.car),
-    username: row.username,
-    displayName: row.displayName,
-  })));
-});
-
-// POST /api/admin/moderation/:carId/approve
-router.post("/admin/moderation/:carId/approve", async (req, res) => {
-  const telegramId = req.headers["x-telegram-id"] as string;
-  if (!ADMIN_IDS.includes(telegramId)) { res.status(403).json({ error: "Forbidden" }); return; }
-
-  const carId = parseInt(req.params.carId);
-  const updated = await db.update(carsTable).set({ aiStatus: "approved" }).where(eq(carsTable.id, carId)).returning();
-  if (updated.length === 0) { res.status(404).json({ error: "Car not found" }); return; }
-  res.json(formatCar(updated[0]));
-});
-
-// POST /api/admin/moderation/:carId/reject
-router.post("/admin/moderation/:carId/reject", async (req, res) => {
-  const telegramId = req.headers["x-telegram-id"] as string;
-  if (!ADMIN_IDS.includes(telegramId)) { res.status(403).json({ error: "Forbidden" }); return; }
-
-  const carId = parseInt(req.params.carId);
-  // Reset attempts to allow user to try again
-  const updated = await db.update(carsTable).set({
-    aiStatus: "rejected",
-    aiStyledImageUrl: null,
-    aiGenerationAttempts: 0,
-  }).where(eq(carsTable.id, carId)).returning();
-  if (updated.length === 0) { res.status(404).json({ error: "Car not found" }); return; }
   res.json(formatCar(updated[0]));
 });
 

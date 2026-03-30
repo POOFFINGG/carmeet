@@ -30,10 +30,10 @@ export default function Garage() {
   const activeCar = (selectedCarId ? cars?.find(c => c.id === selectedCarId) : null) ?? primaryCar;
 
   const showAiBadge = activeCar?.aiStatus && activeCar.aiStatus !== "none" && activeCar.aiStatus !== "generating";
-  const carDisplayUrl =
-    activeCar?.aiStatus === "approved" || activeCar?.aiStatus === "pending_moderation" || activeCar?.aiStatus === "result_ready"
-      ? (activeCar.aiStyledImageUrl || `${import.meta.env.BASE_URL}new-angle-Photoroom.png`)
-      : `${import.meta.env.BASE_URL}new-angle-Photoroom.png`;
+  const hasAiImage = (activeCar?.aiStatus === "approved" || activeCar?.aiStatus === "pending_moderation" || activeCar?.aiStatus === "result_ready") && activeCar?.aiStyledImageUrl;
+  const carDisplayUrl = hasAiImage
+    ? activeCar.aiStyledImageUrl
+    : `${import.meta.env.BASE_URL}new-angle-Photoroom.png`;
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -54,11 +54,14 @@ export default function Garage() {
   return (
     <div className="min-h-screen relative overflow-hidden flex flex-col">
 
-      {/* ── Full-screen garage background ── */}
+      {/* ── Background: composed JPEG (car already placed) or plain garage ── */}
       <img
-        src={`${import.meta.env.BASE_URL}garage-bg.png?v=2`}
+        src={hasAiImage ? carDisplayUrl : `${import.meta.env.BASE_URL}garage-bg.png?v=2`}
         alt="" aria-hidden
         className="absolute inset-0 w-full h-full object-cover object-center"
+        onError={(e) => {
+          (e.target as HTMLImageElement).src = `${import.meta.env.BASE_URL}garage-bg.png?v=2`;
+        }}
       />
 
       {/* Edge fades */}
@@ -67,21 +70,30 @@ export default function Garage() {
       <div className="absolute inset-0 pointer-events-none"
         style={{ background: "linear-gradient(to bottom, rgba(13,13,13,0.6) 0%, transparent 30%, transparent 55%, rgba(13,13,13,0.92) 100%)" }} />
 
-      {/* ── Car — absolutely centered on the full screen ── */}
+      {/* ── AI status badge (when car is in the composed JPEG background) ── */}
+      {showAiBadge && activeCar && hasAiImage && (
+        <div className="absolute z-10 right-5" style={{ top: "32%" }}>
+          <span className={cn(
+            "text-[10px] font-bold px-2.5 py-1 rounded-lg border",
+            AI_STATUS_BADGE[activeCar.aiStatus]?.color ?? "bg-white/10 text-white/50 border-white/10"
+          )}>
+            {AI_STATUS_BADGE[activeCar.aiStatus]?.label ?? activeCar.aiStatus}
+          </span>
+        </div>
+      )}
+
+      {/* ── Car overlay: shown only when no AI image (placeholder / viewer silhouette) ── */}
       <div className="absolute inset-0 z-10 flex items-center justify-center px-4 pointer-events-none">
-        {!carsLoading && activeCar ? (
+        {!carsLoading && activeCar && !hasAiImage ? (
           <div className="relative w-full pointer-events-auto">
             <img
               key={activeCar?.id}
-              src={carDisplayUrl}
+              src={`${import.meta.env.BASE_URL}new-angle-Photoroom.png`}
               alt="My Car"
               className="w-full object-contain transition-opacity duration-300"
               style={{
                 maxHeight: "75vh",
                 filter: "drop-shadow(0 20px 40px rgba(0,0,0,0.9)) drop-shadow(0 4px 12px rgba(0,0,0,0.7))",
-              }}
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = `${import.meta.env.BASE_URL}new-angle-Photoroom.png`;
               }}
             />
             {showAiBadge && activeCar && (
@@ -97,10 +109,16 @@ export default function Garage() {
           </div>
         ) : !carsLoading && user?.role === "viewer" ? (
           <div className="flex flex-col items-center justify-center gap-3 pointer-events-auto">
-            <Car className="w-16 h-16 text-white/15" />
+            <span className="text-7xl select-none" style={{ filter: "drop-shadow(0 8px 24px rgba(0,0,0,0.8))" }}>
+              {user.viewerSilhouette === "bicycle" ? "🚲"
+                : user.viewerSilhouette === "scooter" ? "🛴"
+                : user.viewerSilhouette === "skateboard" ? "🛹"
+                : user.viewerSilhouette === "cart" ? "🛒"
+                : "🚶"}
+            </span>
             <p className="text-white/30 text-sm">Режим зрителя</p>
           </div>
-        ) : !carsLoading ? (
+        ) : !carsLoading && !activeCar ? (
           <button
             onClick={() => setLocation("/settings/car/new")}
             className="flex flex-col items-center gap-3 active:scale-95 transition-all pointer-events-auto"

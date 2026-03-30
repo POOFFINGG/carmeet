@@ -5,13 +5,7 @@ import { useGetMe, useGetMyCars } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { getTgUser } from "@/lib/utils";
-
-const CAR_MAKES = [
-  "Lada", "Volkswagen", "Toyota", "BMW", "Mercedes-Benz", "Audi",
-  "Hyundai", "Kia", "Nissan", "Ford", "Mazda", "Honda", "Skoda",
-  "Renault", "Peugeot", "Chevrolet", "Opel", "Mitsubishi", "Subaru",
-  "Lexus", "Infiniti", "Porsche", "Ferrari", "Lamborghini", "Aston Martin",
-];
+import { CAR_DATABASE, CAR_MAKES } from "@/lib/cars-data";
 
 const SILHOUETTE_COLORS = [
   { hex: "#e53935", label: "Красный" },
@@ -56,6 +50,8 @@ export default function EditCar() {
   const [saving, setSaving] = useState(false);
   const [makeQuery, setMakeQuery] = useState("");
   const [showMakeSuggestions, setShowMakeSuggestions] = useState(false);
+  const [modelQuery, setModelQuery] = useState("");
+  const [showModelSuggestions, setShowModelSuggestions] = useState(false);
 
   useEffect(() => {
     if (initialized) return;
@@ -74,6 +70,10 @@ export default function EditCar() {
   const fileRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
 
   const filteredMakes = CAR_MAKES.filter(m => m.toLowerCase().includes(makeQuery.toLowerCase()) && makeQuery.length > 0);
+  const availableModels = CAR_DATABASE[make] ?? [];
+  const filteredModels = modelQuery.length > 0
+    ? availableModels.filter(m => m.toLowerCase().includes(modelQuery.toLowerCase()))
+    : availableModels.slice(0, 8);
 
   async function apiCall(path: string, method = "GET", body?: object) {
     const res = await fetch(`${BASE_URL}${path}`, {
@@ -145,22 +145,24 @@ export default function EditCar() {
       await queryClient.invalidateQueries({ queryKey: ["/api/cars"] });
     }
 
-    // Trigger generation on server
-    const result = await apiCall(`/api/cars/${carId}/generate`, "POST", { sourcePhotos: photos });
-    const newAttempts = result.attemptsUsed ?? (attempts + 1);
+    try {
+      // Call real AI pipeline (takes 5–15 seconds)
+      const result = await apiCall(`/api/cars/${carId}/generate`, "POST", { sourcePhotos: photos });
 
-    // Simulate AI generation delay (3–5 seconds)
-    await new Promise(r => setTimeout(r, 3500));
+      if (result.error) {
+        alert(result.error);
+        setStage("photos");
+        return;
+      }
 
-    // Mock result: use the default-car image as "generated" output
-    const mockGeneratedUrl = `${import.meta.env.BASE_URL}images/default-car.png`;
-    setGeneratedUrl(mockGeneratedUrl);
-    setAttempts(newAttempts);
-
-    // Store result on server
-    await apiCall(`/api/cars/${carId}/ai-result`, "POST", { aiStyledImageUrl: mockGeneratedUrl });
-
-    setStage("result");
+      const newAttempts = result.attemptsUsed ?? (attempts + 1);
+      setGeneratedUrl(result.aiStyledImageUrl);
+      setAttempts(newAttempts);
+      setStage("result");
+    } catch {
+      alert("Не удалось обработать фото. Попробуйте другое.");
+      setStage("photos");
+    }
   }
 
   async function acceptResult() {
@@ -190,8 +192,8 @@ export default function EditCar() {
           <Loader2 className="w-10 h-10 text-primary animate-spin" />
         </div>
         <div>
-          <h2 className="text-2xl font-black text-white mb-2">Генерируем ваш автомобиль...</h2>
-          <p className="text-white/40 text-sm">Это займёт 10–30 секунд</p>
+          <h2 className="text-2xl font-black text-white mb-2">Ставим машину в гараж...</h2>
+          <p className="text-white/40 text-sm">Это займёт 5–15 секунд</p>
         </div>
         <div className="flex gap-1.5 mt-2">
           {[0,1,2].map(i => <div key={i} className="w-2 h-2 rounded-full bg-primary/40 animate-pulse" style={{ animationDelay: `${i * 200}ms` }} />)}
@@ -262,21 +264,21 @@ export default function EditCar() {
 
   // ── Stage: PHOTOS ─────────────────────────────────────────────────────────
   if (stage === "photos") {
-    const allFilled = photos.filter(Boolean).length === 4;
+    const hasPhoto = photos.filter(Boolean).length >= 1;
     return (
       <div className="min-h-screen bg-[#0d0d0d] flex flex-col">
         <div className="pt-12 px-5 pb-4 flex items-center gap-3 border-b border-white/6">
           <button onClick={() => setStage("edit")} className="w-9 h-9 flex items-center justify-center rounded-full bg-white/6 active:scale-90 transition-all">
             <ChevronLeft className="w-5 h-5 text-white/70" />
           </button>
-          <h1 className="text-lg font-black text-white">Загрузка фотографий</h1>
+          <h1 className="text-lg font-black text-white">Загрузка фотографии</h1>
         </div>
 
         <div className="px-5 pt-5 pb-2">
           <p className="text-white/50 text-sm leading-relaxed">
-            Загрузите <span className="text-white font-bold">4 фотографии</span> вашего автомобиля с разных ракурсов. Чем лучше качество фото — тем лучше результат.
+            Загрузите <span className="text-white font-bold">фото вашего автомобиля</span> — с любого ракурса. Нейросеть приведёт его к единому виду и поставит в гараж.
           </p>
-          <p className="text-white/30 text-xs mt-1">JPG, PNG · до 10 МБ каждое · мин. 640×480</p>
+          <p className="text-white/30 text-xs mt-1">JPG, PNG · до 10 МБ · мин. 640×480</p>
         </div>
 
         <div className="px-5 pt-4 grid grid-cols-2 gap-3">
@@ -293,7 +295,8 @@ export default function EditCar() {
                 onClick={() => handlePhotoSlot(i)}
                 className={cn(
                   "w-full aspect-square rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 overflow-hidden transition-all active:scale-95",
-                  photos[i] ? "border-transparent" : "border-white/15 bg-white/3"
+                  photos[i] ? "border-transparent" : "border-white/15 bg-white/3",
+                  i === 0 && !photos[i] && "border-primary/30 bg-primary/5"
                 )}
               >
                 {photos[i] ? (
@@ -308,8 +311,10 @@ export default function EditCar() {
                   </div>
                 ) : (
                   <>
-                    <Plus className="w-7 h-7 text-white/25" />
-                    <span className="text-white/30 text-xs">Фото {i+1}</span>
+                    <Plus className={cn("w-7 h-7", i === 0 ? "text-primary/50" : "text-white/25")} />
+                    <span className={cn("text-xs", i === 0 ? "text-primary/50 font-bold" : "text-white/30")}>
+                      {i === 0 ? "Основное фото" : `Фото ${i+1}`}
+                    </span>
                   </>
                 )}
               </button>
@@ -320,10 +325,10 @@ export default function EditCar() {
         <div className="px-5 pb-10 pt-6">
           <button
             onClick={generate}
-            disabled={!allFilled || attempts >= MAX_ATTEMPTS}
+            disabled={!hasPhoto || attempts >= MAX_ATTEMPTS}
             className="w-full py-3.5 bg-primary rounded-2xl font-black text-white active:scale-[0.98] transition-all disabled:opacity-40"
           >
-            {attempts >= MAX_ATTEMPTS ? "Попытки исчерпаны" : "Сгенерировать"}
+            {attempts >= MAX_ATTEMPTS ? "Попытки исчерпаны" : "Поставить в гараж"}
           </button>
         </div>
       </div>
@@ -346,7 +351,7 @@ export default function EditCar() {
           <label className="text-white/40 text-xs font-bold uppercase tracking-widest mb-2 block">Марка</label>
           <input
             value={makeQuery || make}
-            onChange={e => { setMakeQuery(e.target.value); setMake(e.target.value); setShowMakeSuggestions(true); }}
+            onChange={e => { setMakeQuery(e.target.value); setMake(e.target.value); setShowMakeSuggestions(true); setModel(""); setModelQuery(""); }}
             onBlur={() => setTimeout(() => setShowMakeSuggestions(false), 150)}
             placeholder="Например: Lada, BMW..."
             className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-white font-medium placeholder-white/20 outline-none focus:border-primary/50 transition-colors"
@@ -354,7 +359,7 @@ export default function EditCar() {
           {showMakeSuggestions && filteredMakes.length > 0 && (
             <div className="absolute top-full left-0 right-0 mt-1 bg-[#1a1a1a] border border-white/10 rounded-2xl overflow-hidden z-20 shadow-xl">
               {filteredMakes.slice(0, 5).map(m => (
-                <button key={m} onMouseDown={() => { setMake(m); setMakeQuery(""); setShowMakeSuggestions(false); }}
+                <button key={m} onMouseDown={() => { setMake(m); setMakeQuery(""); setShowMakeSuggestions(false); setModel(""); setModelQuery(""); }}
                   className="w-full text-left px-4 py-3 text-white/80 text-sm hover:bg-white/5 transition-colors">
                   {m}
                 </button>
@@ -364,14 +369,26 @@ export default function EditCar() {
         </div>
 
         {/* Model */}
-        <div>
+        <div className="relative">
           <label className="text-white/40 text-xs font-bold uppercase tracking-widest mb-2 block">Модель</label>
           <input
-            value={model}
-            onChange={e => setModel(e.target.value)}
+            value={modelQuery || model}
+            onChange={e => { setModelQuery(e.target.value); setModel(e.target.value); setShowModelSuggestions(true); }}
+            onFocus={() => { if (availableModels.length > 0) setShowModelSuggestions(true); }}
+            onBlur={() => setTimeout(() => setShowModelSuggestions(false), 150)}
             placeholder="Например: 2109, M5..."
             className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-white font-medium placeholder-white/20 outline-none focus:border-primary/50 transition-colors"
           />
+          {showModelSuggestions && filteredModels.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-[#1a1a1a] border border-white/10 rounded-2xl overflow-hidden z-20 shadow-xl max-h-48 overflow-y-auto">
+              {filteredModels.slice(0, 8).map(m => (
+                <button key={m} onMouseDown={() => { setModel(m); setModelQuery(""); setShowModelSuggestions(false); }}
+                  className="w-full text-left px-4 py-3 text-white/80 text-sm hover:bg-white/5 transition-colors">
+                  {m}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Year + Color */}
@@ -424,7 +441,7 @@ export default function EditCar() {
             <span className="text-white/30 text-xs">{attempts}/{MAX_ATTEMPTS} попыток</span>
           </div>
           <p className="text-white/40 text-xs mb-4 leading-relaxed">
-            Загрузите 4 фото вашего авто — нейросеть создаст мультяшный стиль в едином оформлении.
+            Загрузите фото вашего авто — нейросеть приведёт ракурс к единому виду и поставит машину в гараж.
           </p>
           {targetCar?.aiStatus === "pending_moderation" && (
             <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-3 py-2 mb-3 text-yellow-400 text-xs font-medium">
@@ -447,7 +464,7 @@ export default function EditCar() {
             className="w-full py-3 bg-primary/15 border border-primary/30 rounded-xl font-bold text-primary text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-40"
           >
             <Car className="w-4 h-4" />
-            {targetCar?.aiStyledImageUrl ? "Перегенерировать" : "Загрузить фото и сгенерировать"}
+            {targetCar?.aiStyledImageUrl ? "Перегенерировать" : "Загрузить фото"}
           </button>
         </div>
       </div>

@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { getTgUser } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { BottomNav } from "@/components/Navigation";
+import hummerImg from "@assets/9003368582ac3463e0bbfc01325d2e7d_1775136075973.jpg";
 
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -54,13 +55,13 @@ export default function Garage() {
   return (
     <div className="min-h-screen relative overflow-hidden flex flex-col bg-[#0d0d0d]">
 
-      {/* ── Background: composed JPEG (car already placed) or plain garage ── */}
+      {/* ── Background: composed JPEG (car already placed) or hummer photo ── */}
       <img
-        src={hasAiImage ? carDisplayUrl : `${import.meta.env.BASE_URL}garage-bg.png?v=2`}
+        src={hasAiImage ? carDisplayUrl : hummerImg}
         alt="" aria-hidden
         className="absolute inset-0 w-full h-full object-cover object-center"
         onError={(e) => {
-          (e.target as HTMLImageElement).src = `${import.meta.env.BASE_URL}garage-bg.png?v=2`;
+          (e.target as HTMLImageElement).src = hummerImg;
         }}
       />
 
@@ -82,13 +83,13 @@ export default function Garage() {
         </div>
       )}
 
-      {/* ── Car overlay: shown only when no AI image (placeholder / viewer silhouette) ── */}
+      {/* ── Car overlay: hidden (car shown as background) ── */}
       <div className="absolute inset-0 z-10 flex items-center justify-center px-4 pointer-events-none">
-        {!carsLoading && activeCar && !hasAiImage ? (
+        {false ? (
           <div className="relative w-full pointer-events-auto">
             <img
               key={activeCar?.id}
-              src={`${import.meta.env.BASE_URL}new-angle-Photoroom.png`}
+              src={carDisplayUrl}
               alt="My Car"
               className="w-full object-contain transition-opacity duration-300"
               style={{

@@ -1,12 +1,13 @@
 import { motion } from "framer-motion";
 import { Layout } from "@/components/Layout";
+import hummerBg from "@assets/9003368582ac3463e0bbfc01325d2e7d_1775136075973.jpg";
 
 export default function Splash() {
   return (
     <Layout showNav={false}>
       <div className="absolute inset-0 z-0">
         <img 
-          src={`${import.meta.env.BASE_URL}images/hero-splash.png`}
+          src={hummerBg}
           alt="MEET App Background"
           className="w-full h-full object-cover opacity-60"
         />

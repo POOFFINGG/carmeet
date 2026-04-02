@@ -136,8 +136,8 @@ router.post("/cars/:carId/generate", async (req, res) => {
   }).where(eq(carsTable.id, carId));
 
   try {
-    // Run the full pipeline: normalize angle → remove bg → compose in garage
-    const resultUrl = await processCarPhoto(firstPhoto);
+    // Generate car + garage as one image via Flux img2img
+    const resultUrl = await processCarPhoto(firstPhoto, car.make, car.model, car.color ?? "");
 
     // Save result
     const updated = await db.update(carsTable).set({

@@ -275,4 +275,71 @@ router.delete("/events/:eventId", async (req, res) => {
   res.json({ success: true });
 });
 
+// POST /api/events/:eventId/notify — send notification to all approved participants
+router.post("/events/:eventId/notify", async (req, res) => {
+  const userId = await getUserFromRequest(req);
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+  const eventId = parseInt(req.params.eventId);
+  if (isNaN(eventId)) { res.status(400).json({ error: "Invalid event ID" }); return; }
+
+  const [event] = await db.select({ organizerId: eventsTable.organizerId, title: eventsTable.title })
+    .from(eventsTable).where(eq(eventsTable.id, eventId)).limit(1);
+  if (!event) { res.status(404).json({ error: "Event not found" }); return; }
+  if (event.organizerId !== userId) { res.status(403).json({ error: "Forbidden" }); return; }
+
+  const { message } = req.body;
+  if (!message) { res.status(400).json({ error: "Message is required" }); return; }
+
+  const approvedApps = await db
+    .select({ userId: applicationsTable.userId })
+    .from(applicationsTable)
+    .where(and(eq(applicationsTable.eventId, eventId), eq(applicationsTable.status, "approved")));
+
+  if (approvedApps.length > 0) {
+    await db.insert(notificationsTable).values(
+      approvedApps.map(a => ({
+        userId: a.userId,
+        type: "event_reminder" as const,
+        title: `Уведомление: ${event.title}`,
+        message,
+        eventId,
+      })),
+    );
+  }
+
+  res.json({ sent: approvedApps.length });
+});
+
+// POST /api/events/:eventId/invite — invite user by username
+router.post("/events/:eventId/invite", async (req, res) => {
+  const userId = await getUserFromRequest(req);
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+  const eventId = parseInt(req.params.eventId);
+  if (isNaN(eventId)) { res.status(400).json({ error: "Invalid event ID" }); return; }
+
+  const [event] = await db.select({ organizerId: eventsTable.organizerId, title: eventsTable.title })
+    .from(eventsTable).where(eq(eventsTable.id, eventId)).limit(1);
+  if (!event) { res.status(404).json({ error: "Event not found" }); return; }
+  if (event.organizerId !== userId) { res.status(403).json({ error: "Forbidden" }); return; }
+
+  const { username } = req.body;
+  if (!username) { res.status(400).json({ error: "username required" }); return; }
+
+  const [targetUser] = await db.select({ id: usersTable.id })
+    .from(usersTable).where(eq(usersTable.username, username)).limit(1);
+  if (!targetUser) { res.status(404).json({ error: "User not found" }); return; }
+
+  await db.insert(notificationsTable).values({
+    userId: targetUser.id,
+    type: "new_event" as const,
+    title: `Приглашение на ${event.title}`,
+    message: "Организатор мероприятия отправил вам личное приглашение.",
+    eventId,
+  });
+
+  res.json({ success: true });
+});
+
 export default router;

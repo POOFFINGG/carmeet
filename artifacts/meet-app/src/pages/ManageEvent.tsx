@@ -1,24 +1,38 @@
 import { useState } from "react";
-import { useRoute } from "wouter";
+import { useRoute, useLocation } from "wouter";
 import { Layout } from "@/components/Layout";
-import { useGetEventApplications, useUpdateApplication, useGetEvent, useCancelApplication } from "@workspace/api-client-react";
-import { ChevronLeft, Check, X, Users, Eye, Car, Clock, UserCheck, UserX } from "lucide-react";
+import { useGetEventApplications, useUpdateApplication, useGetEvent, useCancelApplication, useDeleteEvent } from "@workspace/api-client-react";
+import { ChevronLeft, Users, Eye, Car, Clock, UserCheck, UserX, Bell, UserPlus, AlertTriangle, Send, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
+import { getTgUser } from "@/lib/utils";
+
+const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 type Tab = "all" | "pending" | "participant" | "viewer";
 
 export default function ManageEvent() {
   const [, params] = useRoute("/events/:id/manage");
+  const [, setLocation] = useLocation();
   const eventId = Number(params?.id);
   const queryClient = useQueryClient();
+  const tgUser = getTgUser();
   const [tab, setTab] = useState<Tab>("pending");
   const [processing, setProcessing] = useState<number | null>(null);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showNotifyModal, setShowNotifyModal] = useState(false);
+  const [notifyMessage, setNotifyMessage] = useState("");
+  const [isSendingNotify, setIsSendingNotify] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteUsername, setInviteUsername] = useState("");
+  const [isInviting, setIsInviting] = useState(false);
+  const [inviteResult, setInviteResult] = useState<string | null>(null);
 
   const { data: event } = useGetEvent(eventId, { query: { enabled: !!eventId } });
   const { data: applications, isLoading } = useGetEventApplications(eventId, { query: { enabled: !!eventId } });
   const { mutateAsync: updateApp } = useUpdateApplication();
   const { mutateAsync: cancelApp } = useCancelApplication();
+  const { mutateAsync: deleteEvent, isPending: isCancelling } = useDeleteEvent();
 
   async function approve(appId: number) {
     setProcessing(appId);
@@ -47,6 +61,53 @@ export default function ManageEvent() {
       await queryClient.invalidateQueries({ queryKey: [`/api/events/${eventId}/applications`] });
     } finally {
       setProcessing(null);
+    }
+  }
+
+  async function cancelEvent() {
+    try {
+      await deleteEvent({ eventId });
+      setLocation("/events");
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function sendNotification() {
+    if (!notifyMessage.trim()) return;
+    setIsSendingNotify(true);
+    try {
+      await fetch(`${BASE_URL}/api/events/${eventId}/notify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-telegram-id": tgUser.id },
+        body: JSON.stringify({ message: notifyMessage }),
+      });
+      setNotifyMessage("");
+      setShowNotifyModal(false);
+    } finally {
+      setIsSendingNotify(false);
+    }
+  }
+
+  async function inviteUser() {
+    if (!inviteUsername.trim()) return;
+    setIsInviting(true);
+    setInviteResult(null);
+    try {
+      const resp = await fetch(`${BASE_URL}/api/events/${eventId}/invite`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-telegram-id": tgUser.id },
+        body: JSON.stringify({ username: inviteUsername.replace(/^@/, "") }),
+      });
+      if (resp.ok) {
+        setInviteResult("ok");
+        setInviteUsername("");
+      } else {
+        const data = await resp.json();
+        setInviteResult(data.error || "Ошибка");
+      }
+    } finally {
+      setIsInviting(false);
     }
   }
 
@@ -81,6 +142,28 @@ export default function ManageEvent() {
             <h1 className="text-lg font-black text-white truncate">{event?.title || "Управление"}</h1>
             <p className="text-white/35 text-xs">{applications?.length || 0} заявок всего</p>
           </div>
+        </div>
+
+        {/* Action buttons row */}
+        <div className="px-5 pt-4 pb-2 flex gap-2">
+          <button
+            onClick={() => setShowNotifyModal(true)}
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-white/5 border border-white/10 rounded-2xl text-xs font-bold text-white/70 active:scale-95 transition-all"
+          >
+            <Bell className="w-4 h-4" /> Уведомить
+          </button>
+          <button
+            onClick={() => setShowInviteModal(true)}
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-white/5 border border-white/10 rounded-2xl text-xs font-bold text-white/70 active:scale-95 transition-all"
+          >
+            <UserPlus className="w-4 h-4" /> Пригласить
+          </button>
+          <button
+            onClick={() => setShowCancelConfirm(true)}
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-red-500/10 border border-red-500/20 rounded-2xl text-xs font-bold text-red-400 active:scale-95 transition-all"
+          >
+            <AlertTriangle className="w-4 h-4" /> Отменить
+          </button>
         </div>
 
         {/* Stats row */}
@@ -229,6 +312,102 @@ export default function ManageEvent() {
           )}
         </div>
       </div>
+
+      {/* Cancel confirm dialog */}
+      {showCancelConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-5" onClick={() => setShowCancelConfirm(false)}>
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+          <div className="relative bg-[#1a1a1a] border border-white/10 rounded-3xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <AlertTriangle className="w-10 h-10 text-red-400 mx-auto mb-3" />
+            <h3 className="text-lg font-black text-white text-center mb-2">Отменить событие?</h3>
+            <p className="text-white/40 text-sm text-center mb-5">Все участники получат уведомление об отмене.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowCancelConfirm(false)}
+                className="flex-1 py-3 bg-white/8 border border-white/10 text-white/70 rounded-2xl font-bold text-sm"
+              >
+                Назад
+              </button>
+              <button
+                onClick={cancelEvent}
+                disabled={isCancelling}
+                className="flex-1 py-3 bg-red-500/20 border border-red-500/30 text-red-400 rounded-2xl font-bold text-sm active:scale-95 transition-all disabled:opacity-50"
+              >
+                {isCancelling ? "Отменяем..." : "Отменить"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notify modal */}
+      {showNotifyModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setShowNotifyModal(false)}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className="relative w-full max-w-md bg-[#111] border border-white/10 rounded-t-3xl p-6 pb-10" onClick={e => e.stopPropagation()}>
+            <div className="w-12 h-1 rounded-full bg-white/20 mx-auto mb-5" />
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-black text-white">Уведомить участников</h3>
+              <button onClick={() => setShowNotifyModal(false)} className="w-8 h-8 rounded-full bg-white/8 flex items-center justify-center">
+                <X className="w-4 h-4 text-white/50" />
+              </button>
+            </div>
+            <textarea
+              value={notifyMessage}
+              onChange={e => setNotifyMessage(e.target.value)}
+              placeholder="Текст уведомления..."
+              rows={3}
+              className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-sm placeholder:text-white/30 outline-none focus:border-white/25 resize-none mb-4"
+            />
+            <button
+              onClick={sendNotification}
+              disabled={isSendingNotify || !notifyMessage.trim()}
+              className="w-full py-3.5 bg-primary rounded-2xl font-black text-white flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-50"
+            >
+              <Send className="w-4 h-4" />
+              {isSendingNotify ? "Отправляем..." : "Отправить всем"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Invite modal */}
+      {showInviteModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setShowInviteModal(false)}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className="relative w-full max-w-md bg-[#111] border border-white/10 rounded-t-3xl p-6 pb-10" onClick={e => e.stopPropagation()}>
+            <div className="w-12 h-1 rounded-full bg-white/20 mx-auto mb-5" />
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-black text-white">Пригласить по нику</h3>
+              <button onClick={() => setShowInviteModal(false)} className="w-8 h-8 rounded-full bg-white/8 flex items-center justify-center">
+                <X className="w-4 h-4 text-white/50" />
+              </button>
+            </div>
+            <div className="flex gap-3 mb-3">
+              <input
+                value={inviteUsername}
+                onChange={e => { setInviteUsername(e.target.value); setInviteResult(null); }}
+                placeholder="@username"
+                className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white text-sm placeholder:text-white/30 outline-none focus:border-white/25"
+              />
+              <button
+                onClick={inviteUser}
+                disabled={isInviting || !inviteUsername.trim()}
+                className="px-5 py-3 bg-primary rounded-2xl font-bold text-white text-sm active:scale-95 transition-all disabled:opacity-50 flex items-center gap-1.5"
+              >
+                <UserPlus className="w-4 h-4" />
+                Позвать
+              </button>
+            </div>
+            {inviteResult === "ok" && (
+              <p className="text-green-400 text-xs font-bold px-2">Приглашение отправлено!</p>
+            )}
+            {inviteResult && inviteResult !== "ok" && (
+              <p className="text-red-400 text-xs font-bold px-2">{inviteResult}</p>
+            )}
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }

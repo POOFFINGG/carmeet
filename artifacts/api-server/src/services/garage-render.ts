@@ -1,152 +1,157 @@
-import { fal } from "@fal-ai/client";
-import sharp from "sharp";
 import path from "path";
 import fs from "fs";
 import crypto from "crypto";
+import https from "https";
 
-// ── Config ───────────────────────────────────────────────────────────────────
-
-const GARAGE_CONFIG = {
-  floor_y: 0.72,        // floor line — % from top
-  car_center_x: 0.48,   // horizontal center
-  car_max_width: 0.78,  // max car width / garage width
-  car_max_height: 0.42, // max car height / garage height
-};
-
-const GARAGE_BG_PATH = path.resolve(
-  process.cwd(),
-  "../../artifacts/meet-app/public/garage-bg.png",
-);
+// ── Output dimensions (portrait 9:16, full mobile screen) ────────────────────
+const OUT_W = 576;
+const OUT_H = 1024;
 
 const OUTPUT_DIR = path.resolve(process.cwd(), "uploads/garage");
 const CACHE_DIR  = path.resolve(process.cwd(), "uploads/cache");
 
-// ── Init fal.ai ──────────────────────────────────────────────────────────────
+// Fixed seed → garage layout + car position are always identical
+const GARAGE_SEED = 42;
 
-function ensureFalConfig() {
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function getFalKey(): string {
   const key = process.env["FAL_KEY"];
   if (!key) throw new Error("FAL_KEY environment variable is not set");
-  fal.config({ credentials: key });
+  return key;
 }
 
-// ── Step 1: Relight car to match dark garage via Flux img2img ────────────────
-
-const RELIGHT_PROMPT =
-  "same car, dark garage interior lighting, dramatic overhead fluorescent light from above, " +
-  "realistic photographic quality, dark ambient shadows, car lit from top, " +
-  "slightly warm light, professional automotive photography, preserve car color and shape";
-
-async function relightForGarage(imageUrl: string): Promise<string> {
-  ensureFalConfig();
-  const result = await fal.subscribe("fal-ai/flux/dev/image-to-image", {
-    input: {
-      image_url: imageUrl,
-      prompt: RELIGHT_PROMPT,
-      strength: 0.45,
-      num_inference_steps: 28,
-      guidance_scale: 3.5,
-      num_images: 1,
-      output_format: "jpeg",
-    },
+// Short HTTPS request — works in tsx server because Queue API uses quick round-trips
+function httpsRequest(hostname: string, urlPath: string, method: string, headers: Record<string, string>, bodyStr?: string): Promise<{ status: number; body: string }> {
+  return new Promise((resolve, reject) => {
+    const buf = bodyStr ? Buffer.from(bodyStr, "utf8") : null;
+    const req = https.request(
+      {
+        hostname, path: urlPath, method,
+        timeout: 120_000,
+        agent: false,
+        rejectUnauthorized: false,
+        headers: { ...headers, ...(buf ? { "Content-Length": buf.byteLength } : {}) },
+      },
+      (res) => {
+        const chunks: Buffer[] = [];
+        res.on("data", (c: Buffer) => chunks.push(c));
+        res.on("end", () => resolve({ status: res.statusCode ?? 0, body: Buffer.concat(chunks).toString() }));
+        res.on("error", reject);
+      },
+    );
+    req.on("error", reject);
+    req.on("timeout", () => { req.destroy(); reject(new Error("request timeout")); });
+    if (buf) req.write(buf);
+    req.end();
   });
-  const data = result.data as any;
-  return data.images[0].url;
 }
 
-// ── Step 2: Remove background via fal.ai rembg ───────────────────────────────
-
-async function removeBackground(imageUrl: string): Promise<string> {
-  ensureFalConfig();
-  const result = await fal.subscribe("fal-ai/imageutils/rembg", {
-    input: { image_url: imageUrl },
-  });
-  const data = result.data as any;
-  return data.image.url;
-}
-
-async function downloadImage(url: string): Promise<Buffer> {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Failed to download image: ${res.status}`);
-  return Buffer.from(await res.arrayBuffer());
-}
-
-// ── Step 2: Compose car naturally in the garage ───────────────────────────────
-//   • Trim transparent edges
-//   • Resize to fit (car sits large in the scene)
-//   • Dark / warm colour grade to match garage lighting
-//   • Elliptical soft shadow on the floor
-//   • Output is the full JPEG scene (no separate garage-bg layer needed)
-
-async function composeInGarage(carPngBuffer: Buffer): Promise<Buffer> {
-  const garageMeta = await sharp(GARAGE_BG_PATH).metadata();
-  const gw = garageMeta.width!;
-  const gh = garageMeta.height!;
-
-  const maxW = Math.floor(gw * GARAGE_CONFIG.car_max_width);
-  const maxH = Math.floor(gh * GARAGE_CONFIG.car_max_height);
-
-  // Trim transparent border, resize to fit → PNG buffer (avoids raw mode issues)
-  const { data: carPng, info: carInfo } = await sharp(carPngBuffer)
-    .trim()
-    .resize(maxW, maxH, { fit: "inside", withoutEnlargement: true })
-    .ensureAlpha()
-    .png()
-    .toBuffer({ resolveWithObject: true });
-
-  const cw = carInfo.width;
-  const ch = carInfo.height;
-
-  // Position: bottom of car sits exactly on floor line
-  const floorY = Math.floor(gh * GARAGE_CONFIG.floor_y);
-  const x = Math.max(0, Math.floor(gw * GARAGE_CONFIG.car_center_x - cw / 2));
-  const y = Math.max(0, floorY - ch);
-
-  // ── Elliptical floor shadow via Buffer.alloc (guaranteed exact size) ─────
-  const shadowW   = Math.floor(cw * 1.15);
-  const shadowH   = Math.max(30, Math.floor(ch * 0.10));
-  const shadowX   = Math.max(0, Math.floor(x - (shadowW - cw) / 2));
-  const shadowY   = Math.max(0, floorY - Math.floor(shadowH * 0.55));
-  const blurSigma = Math.max(3, Math.floor(shadowH * 0.4));
-
-  const cx = shadowW / 2, cy = shadowH / 2;
-  const rx = cx - 1,      ry = cy - 1;
-  const shadowBuf = Buffer.alloc(shadowW * shadowH * 4, 0); // exact size, all zeros
-  for (let py = 0; py < shadowH; py++) {
-    for (let px = 0; px < shadowW; px++) {
-      const d = Math.sqrt(((px - cx) / rx) ** 2 + ((py - cy) / ry) ** 2);
-      if (d > 1) continue;
-      shadowBuf[(py * shadowW + px) * 4 + 3] = Math.round(220 * (1 - d * 0.5));
+function httpsGetBuffer(url: string): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    function doGet(u: string) {
+      const parsed = new URL(u);
+      https.get(
+        { hostname: parsed.hostname, path: parsed.pathname + parsed.search, timeout: 120_000, agent: false, rejectUnauthorized: false },
+        (res) => {
+          if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+            doGet(res.headers.location); return;
+          }
+          const chunks: Buffer[] = [];
+          res.on("data", (c: Buffer) => chunks.push(c));
+          res.on("end", () => resolve(Buffer.concat(chunks)));
+          res.on("error", reject);
+        },
+      ).on("error", reject);
     }
-  }
-  const shadowBuffer = await sharp(shadowBuf, {
-    raw: { width: shadowW, height: shadowH, channels: 4 },
-  })
-    .blur(blurSigma)
-    .png()
-    .toBuffer();
-
-  // ── Colour-grade: darken + desaturate to match dark garage lighting ───────
-  // Input is PNG buffer — no raw mode needed
-  const carFinal = await sharp(carPng)
-    .modulate({ brightness: 0.72, saturation: 0.85 })
-    .png()
-    .toBuffer();
-
-  // ── Composite: garage bg → shadow → car ──────────────────────────────────
-  return await sharp(GARAGE_BG_PATH)
-    .composite([
-      { input: shadowBuffer, left: shadowX, top: shadowY },
-      { input: carFinal,     left: x,       top: y },
-    ])
-    .jpeg({ quality: 93 })
-    .toBuffer();
+    doGet(url);
+  });
 }
 
-// ── Full pipeline ────────────────────────────────────────────────────────────
+function sleep(ms: number): Promise<void> {
+  return new Promise(r => setTimeout(r, ms));
+}
 
-export async function processCarPhoto(photoBase64: string): Promise<string> {
-  // Check cache
-  const hash      = crypto.createHash("md5").update(photoBase64).digest("hex");
+// ── Prompt ────────────────────────────────────────────────────────────────────
+
+const GARAGE_SCENE =
+  "dark underground car garage interior, " +
+  "industrial fluorescent tube lights on the ceiling casting cool white light, " +
+  "worn concrete floor with oil stains and wet reflections, " +
+  "graffiti art on brick walls in the background, " +
+  "blue mechanic tool cabinet against the back wall, " +
+  "atmospheric haze with dust particles in the air, " +
+  "cinematic moody lighting";
+
+function buildPrompt(make: string, model: string, color: string): string {
+  const col = color ? `${color} ` : "";
+  return (
+    `${col}${make} ${model} parked diagonally in ${GARAGE_SCENE}. ` +
+    `The LEFT FRONT WHEEL and LEFT HEADLIGHT are in the foreground, closest to the viewer. ` +
+    `The right side of the car recedes into the background. ` +
+    `The car's hood slopes away to the right. Left door panel clearly visible. ` +
+    `Classic automotive three-quarter front-left promotional shot. ` +
+    `WIDE SHOT — entire car fully visible, all four wheels on the ground, no cropping. ` +
+    `Large empty space above the car showing garage ceiling with fluorescent lights. ` +
+    `Large empty space below the car showing wet concrete floor. ` +
+    `Portrait 9:16 vertical frame. Photorealistic, cinematic, sharp focus.`
+  );
+}
+
+function buildNegativePrompt(): string {
+  return "symmetrical, centered, front view, straight on, head-on, both headlights same size, car facing camera directly";
+}
+
+// ── fal.ai Queue API (short requests, no long-lived connections) ──────────────
+
+async function falQueueRun(endpoint: string, payload: object): Promise<Buffer> {
+  const key = getFalKey();
+  const auth = { "Authorization": `Key ${key}`, "Content-Type": "application/json" };
+
+  // Step 1: Submit
+  const submitResp = await httpsRequest("queue.fal.run", `/${endpoint}`, "POST", auth, JSON.stringify(payload));
+  if (submitResp.status !== 200 && submitResp.status !== 201) {
+    throw new Error(`fal submit failed HTTP ${submitResp.status}: ${submitResp.body.slice(0, 200)}`);
+  }
+  const submitData = JSON.parse(submitResp.body);
+  const statusUrl  = new URL(submitData.status_url);
+  const resultUrl  = new URL(submitData.response_url);
+
+  // Step 2: Poll
+  const deadline = Date.now() + 300_000;
+  while (Date.now() < deadline) {
+    await sleep(3000);
+    const pollResp = await httpsRequest(statusUrl.hostname, statusUrl.pathname, "GET", auth);
+    if (pollResp.status !== 200 && pollResp.status !== 202) {
+      throw new Error(`fal poll failed HTTP ${pollResp.status}`);
+    }
+    const pollData = JSON.parse(pollResp.body);
+    if (pollData.status === "COMPLETED") break;
+    if (pollData.status === "FAILED") throw new Error("fal job failed: " + JSON.stringify(pollData).slice(0, 100));
+  }
+
+  // Step 3: Get result
+  const resultResp = await httpsRequest(resultUrl.hostname, resultUrl.pathname, "GET", auth);
+  if (resultResp.status !== 200) throw new Error(`fal result failed HTTP ${resultResp.status}`);
+  const resultData = JSON.parse(resultResp.body);
+  const imgUrl = resultData.images?.[0]?.url ?? resultData.image?.url;
+  if (!imgUrl) throw new Error("No image URL in result: " + resultResp.body.slice(0, 100));
+
+  // Step 4: Download image
+  return httpsGetBuffer(imgUrl);
+}
+
+// ── Full pipeline ─────────────────────────────────────────────────────────────
+
+export async function processCarPhoto(
+  _photoBase64: string,
+  make = "Car",
+  model = "",
+  color = "",
+): Promise<string> {
+  const hash = crypto.createHash("md5")
+    .update(`v15:${make}:${model}:${color}`)
+    .digest("hex");
   const cacheFile = path.join(CACHE_DIR, `${hash}.jpg`);
   if (fs.existsSync(cacheFile)) {
     const filename   = `${hash}.jpg`;
@@ -158,38 +163,26 @@ export async function processCarPhoto(photoBase64: string): Promise<string> {
     return `/api/uploads/garage/${filename}`;
   }
 
-  // Convert base64 data URL → buffer
-  const base64Data  = photoBase64.replace(/^data:image\/\w+;base64,/, "");
-  const photoBuffer = Buffer.from(base64Data, "base64");
+  getFalKey();
 
-  // Step 1: Upload original photo → Flux relight for garage interior
-  ensureFalConfig();
-  const blob        = new Blob([photoBuffer], { type: "image/jpeg" });
-  const uploadedUrl = await fal.storage.upload(blob);
-  let relitUrl: string;
-  try {
-    relitUrl = await relightForGarage(uploadedUrl);
-  } catch (err) {
-    console.warn("Relight step failed, using original:", err);
-    relitUrl = uploadedUrl;
-  }
+  const resultJpeg = await falQueueRun("fal-ai/flux/dev", {
+    prompt: buildPrompt(make, model, color),
+    negative_prompt: buildNegativePrompt(),
+    image_size: { width: OUT_W, height: OUT_H },
+    num_inference_steps: 35,
+    guidance_scale: 7.5,
+    seed: GARAGE_SEED,
+    num_images: 1,
+    output_format: "jpeg",
+  });
 
-  // Step 2: Remove background from relit image
-  const noBgUrl    = await removeBackground(relitUrl);
+  console.log("Generation succeeded, bytes:", resultJpeg.length);
 
-  // Step 3: Download transparent PNG
-  const noBgBuffer = await downloadImage(noBgUrl);
-
-  // Step 3: Compose in garage → full JPEG scene
-  const composedJpeg = await composeInGarage(noBgBuffer);
-
-  // Save
-  const filename   = `${crypto.randomUUID()}.jpg`;
+  const filename = `${crypto.randomUUID()}.jpg`;
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
-  fs.mkdirSync(CACHE_DIR,  { recursive: true });
-  const outputPath = path.join(OUTPUT_DIR, filename);
-  fs.writeFileSync(outputPath, composedJpeg);
-  fs.writeFileSync(cacheFile, composedJpeg);
+  fs.mkdirSync(CACHE_DIR, { recursive: true });
+  fs.writeFileSync(path.join(OUTPUT_DIR, filename), resultJpeg);
+  fs.writeFileSync(cacheFile, resultJpeg);
 
   return `/api/uploads/garage/${filename}`;
 }

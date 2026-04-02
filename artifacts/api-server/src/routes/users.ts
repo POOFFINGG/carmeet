@@ -40,6 +40,7 @@ router.get("/users/me", async (req, res) => {
 });
 
 router.post("/users/onboarding", async (req, res) => {
+  try {
   const { telegramId, username, displayName, avatarUrl, role, viewerSilhouette, organizationName, contactLink, adminContact, interestCategories } = req.body;
 
   if (!telegramId || !username || !displayName || !role) {
@@ -90,6 +91,10 @@ router.post("/users/onboarding", async (req, res) => {
   }
 
   res.json(formatUser(user));
+  } catch (err: any) {
+    console.error("Onboarding error:", err.message, err.detail ?? "");
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.patch("/users/me", async (req, res) => {
@@ -123,6 +128,23 @@ router.patch("/users/me", async (req, res) => {
   }
 
   res.json(formatUser(updated[0]));
+});
+
+// GET /api/users/search?username=xxx
+router.get("/users/search", async (req, res) => {
+  const { username } = req.query as Record<string, string>;
+  if (!username) { res.status(400).json({ error: "username required" }); return; }
+
+  const users = await db.select({
+    id: usersTable.id,
+    username: usersTable.username,
+    displayName: usersTable.displayName,
+    avatarUrl: usersTable.avatarUrl,
+    role: usersTable.role,
+  }).from(usersTable).where(eq(usersTable.username, username)).limit(1);
+
+  if (users.length === 0) { res.status(404).json({ error: "User not found" }); return; }
+  res.json(users[0]);
 });
 
 router.get("/users/:userId", async (req, res) => {

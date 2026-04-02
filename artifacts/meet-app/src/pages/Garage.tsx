@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { useGetMyCars, useGetMe } from "@workspace/api-client-react";
-import { Plus, Settings, Car, Camera } from "lucide-react";
+import { Plus, Settings, Car, Camera, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getTgUser } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
@@ -24,7 +24,7 @@ export default function Garage() {
   const [selectedCarId, setSelectedCarId] = useState<number | null>(null);
 
   const { data: user } = useGetMe({ query: { retry: false } });
-  const { data: cars, isLoading: carsLoading } = useGetMyCars({ query: { enabled: !!user && user.role !== "viewer" } });
+  const { data: cars, isLoading: carsLoading } = useGetMyCars({ query: { enabled: !!user } });
 
   const primaryCar = cars?.find(c => c.isPrimary) || cars?.[0];
   const activeCar = (selectedCarId ? cars?.find(c => c.id === selectedCarId) : null) ?? primaryCar;
@@ -52,7 +52,7 @@ export default function Garage() {
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden flex flex-col">
+    <div className="min-h-screen relative overflow-hidden flex flex-col bg-[#0d0d0d]">
 
       {/* ── Background: composed JPEG (car already placed) or plain garage ── */}
       <img
@@ -106,17 +106,6 @@ export default function Garage() {
                 </span>
               </div>
             )}
-          </div>
-        ) : !carsLoading && user?.role === "viewer" ? (
-          <div className="flex flex-col items-center justify-center gap-3 pointer-events-auto">
-            <span className="text-7xl select-none" style={{ filter: "drop-shadow(0 8px 24px rgba(0,0,0,0.8))" }}>
-              {user.viewerSilhouette === "bicycle" ? "🚲"
-                : user.viewerSilhouette === "scooter" ? "🛴"
-                : user.viewerSilhouette === "skateboard" ? "🛹"
-                : user.viewerSilhouette === "cart" ? "🛒"
-                : "🚶"}
-            </span>
-            <p className="text-white/30 text-sm">Режим зрителя</p>
           </div>
         ) : !carsLoading && !activeCar ? (
           <button
@@ -178,9 +167,17 @@ export default function Garage() {
 
           {activeCar && (
             <div className="mb-3">
-              <span className="inline-flex bg-primary/90 text-white text-[10px] font-black px-3 py-1 rounded-lg uppercase tracking-wider mb-1.5">
-                {activeCar.isPrimary ? "Основное авто" : "Второй автомобиль"}
-              </span>
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="inline-flex bg-primary/90 text-white text-[10px] font-black px-3 py-1 rounded-lg uppercase tracking-wider">
+                  {activeCar.isPrimary ? "Основное авто" : "Второй автомобиль"}
+                </span>
+                <button
+                  onClick={() => setLocation(`/settings/car/${activeCar.id}`)}
+                  className="w-7 h-7 rounded-lg bg-white/8 border border-white/10 flex items-center justify-center active:scale-90 transition-all"
+                >
+                  <Pencil className="w-3.5 h-3.5 text-white/50" />
+                </button>
+              </div>
               <h1 className="text-3xl font-black text-white leading-tight">
                 {activeCar.make} <span className="text-white/60 font-bold">{activeCar.model}</span>
               </h1>
@@ -193,7 +190,7 @@ export default function Garage() {
           )}
 
           {/* Car switcher strip */}
-          {!carsLoading && user?.role !== "viewer" && (
+          {!carsLoading && (
             <div className="flex gap-2.5 overflow-x-auto pb-1 -mx-1 px-1 no-scrollbar">
               {cars?.map(car => {
                 const isActive = car.id === (activeCar?.id);
@@ -238,14 +235,6 @@ export default function Garage() {
             </div>
           )}
 
-          {user?.role === "viewer" && (
-            <button
-              onClick={() => setLocation("/events")}
-              className="w-full px-5 py-3 bg-primary rounded-2xl font-black text-white active:scale-95 transition-all"
-            >
-              Найти события
-            </button>
-          )}
 
         </div>
       </div>

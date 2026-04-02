@@ -22,12 +22,16 @@ const CATEGORY_LABELS: Record<string, string> = {
   club: "Автоклубы",
 };
 
+type DateFilter = "all" | "today" | "week";
+
 export default function MapView() {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [dateFilter, setDateFilter] = useState<DateFilter>("all");
+  const [cityFilter, setCityFilter] = useState("");
   const { data: events } = useGetEvents();
 
   useEffect(() => {
@@ -66,11 +70,23 @@ export default function MapView() {
       if (layer instanceof L.Marker) layer.remove();
     });
 
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekEnd = new Date(todayStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+
     const filtered = events.filter(ev => {
       if (!ev.lat || !ev.lng) return false;
       if (activeFilter && ev.category !== activeFilter) return false;
       if (search && !ev.title.toLowerCase().includes(search.toLowerCase()) &&
         !ev.location.toLowerCase().includes(search.toLowerCase())) return false;
+      if (cityFilter && !ev.location.toLowerCase().includes(cityFilter.toLowerCase())) return false;
+      if (dateFilter === "today") {
+        const d = new Date(ev.date);
+        if (d < todayStart || d >= new Date(todayStart.getTime() + 86400000)) return false;
+      } else if (dateFilter === "week") {
+        const d = new Date(ev.date);
+        if (d < todayStart || d >= weekEnd) return false;
+      }
       return true;
     });
 
@@ -111,7 +127,7 @@ export default function MapView() {
           </div>
         `, { maxWidth: 260 });
     });
-  }, [events, activeFilter, search]);
+  }, [events, activeFilter, search, dateFilter, cityFilter]);
 
   return (
     <div className="relative w-full flex flex-col" style={{ height: "100dvh" }}>
@@ -172,33 +188,65 @@ export default function MapView() {
           </button>
         </div>
 
-        {/* Category chips */}
+        {/* Filters panel */}
         {showFilters && (
-          <div className="flex gap-2 overflow-x-auto no-scrollbar">
-            <button
-              onClick={() => setActiveFilter(null)}
-              className={cn(
-                "flex-shrink-0 px-4 py-2 rounded-xl text-xs font-bold backdrop-blur-2xl border transition-all",
-                !activeFilter ? "bg-white text-black border-white" : "bg-black/60 border-white/10 text-white/60"
-              )}
-            >
-              Все
-            </button>
-            {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
+          <div className="flex flex-col gap-2">
+            {/* Category chips */}
+            <div className="flex gap-2 overflow-x-auto no-scrollbar">
               <button
-                key={key}
-                onClick={() => setActiveFilter(activeFilter === key ? null : key)}
-                className="flex-shrink-0 px-4 py-2 rounded-xl text-xs font-bold backdrop-blur-2xl border transition-all"
-                style={{
-                  background: activeFilter === key ? CATEGORY_COLORS[key] : "rgba(0,0,0,0.6)",
-                  borderColor: activeFilter === key ? CATEGORY_COLORS[key] : "rgba(255,255,255,0.1)",
-                  color: "white",
-                  boxShadow: activeFilter === key ? `0 0 16px ${CATEGORY_COLORS[key]}60` : "none",
-                }}
+                onClick={() => setActiveFilter(null)}
+                className={cn(
+                  "flex-shrink-0 px-4 py-2 rounded-xl text-xs font-bold backdrop-blur-2xl border transition-all",
+                  !activeFilter ? "bg-white text-black border-white" : "bg-black/60 border-white/10 text-white/60"
+                )}
               >
-                {label}
+                Все
               </button>
-            ))}
+              {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => setActiveFilter(activeFilter === key ? null : key)}
+                  className="flex-shrink-0 px-4 py-2 rounded-xl text-xs font-bold backdrop-blur-2xl border transition-all"
+                  style={{
+                    background: activeFilter === key ? CATEGORY_COLORS[key] : "rgba(0,0,0,0.6)",
+                    borderColor: activeFilter === key ? CATEGORY_COLORS[key] : "rgba(255,255,255,0.1)",
+                    color: "white",
+                    boxShadow: activeFilter === key ? `0 0 16px ${CATEGORY_COLORS[key]}60` : "none",
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {/* Date chips */}
+            <div className="flex gap-2">
+              {(["all", "today", "week"] as DateFilter[]).map(d => (
+                <button
+                  key={d}
+                  onClick={() => setDateFilter(d)}
+                  className={cn(
+                    "flex-shrink-0 px-4 py-2 rounded-xl text-xs font-bold backdrop-blur-2xl border transition-all",
+                    dateFilter === d ? "bg-white text-black border-white" : "bg-black/60 border-white/10 text-white/60"
+                  )}
+                >
+                  {d === "all" ? "Все даты" : d === "today" ? "Сегодня" : "Эта неделя"}
+                </button>
+              ))}
+            </div>
+            {/* City search */}
+            <div className="relative">
+              <input
+                value={cityFilter}
+                onChange={e => setCityFilter(e.target.value)}
+                className="w-full pl-4 pr-10 py-2.5 bg-black/60 backdrop-blur-2xl border border-white/10 rounded-xl text-white text-xs placeholder:text-white/30 outline-none focus:border-white/25 transition-colors"
+                placeholder="Фильтр по городу..."
+              />
+              {cityFilter && (
+                <button onClick={() => setCityFilter("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>

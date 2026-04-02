@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation, useParams } from "wouter";
-import { ChevronLeft, Plus, X, Loader2, Check, RefreshCw, Car } from "lucide-react";
+import { ChevronLeft, Plus, X, Loader2, Check, RefreshCw, Car, Trash2 } from "lucide-react";
 import { useGetMe, useGetMyCars } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
@@ -18,7 +18,7 @@ const SILHOUETTE_COLORS = [
   { hex: "#6A1B9A", label: "Фиолетовый" },
 ];
 
-const MAX_ATTEMPTS = 3;
+const MAX_ATTEMPTS = 10;
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 type Stage = "edit" | "photos" | "generating" | "result" | "silhouette";
@@ -48,6 +48,7 @@ export default function EditCar() {
   const [attempts, setAttempts] = useState(0);
   const [initialized, setInitialized] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [createdCarId, setCreatedCarId] = useState<number | null>(null);
   const [makeQuery, setMakeQuery] = useState("");
   const [showMakeSuggestions, setShowMakeSuggestions] = useState(false);
   const [modelQuery, setModelQuery] = useState("");
@@ -142,6 +143,7 @@ export default function EditCar() {
       const isFirstCar = !cars?.length;
       const created = await apiCall("/api/cars", "POST", { make, model, year: year ? parseInt(year) : null, color, silhouetteColor: silColor, isPrimary: isFirstCar });
       carId = created.id;
+      setCreatedCarId(created.id);
       await queryClient.invalidateQueries({ queryKey: ["/api/cars"] });
     }
 
@@ -150,7 +152,7 @@ export default function EditCar() {
       const result = await apiCall(`/api/cars/${carId}/generate`, "POST", { sourcePhotos: photos });
 
       if (result.error) {
-        alert(result.error);
+        alert(result.error + (result.details ? "\n\n" + result.details : ""));
         setStage("photos");
         return;
       }
@@ -166,7 +168,7 @@ export default function EditCar() {
   }
 
   async function acceptResult() {
-    const carId = targetCar?.id;
+    const carId = targetCar?.id ?? createdCarId;
     if (!carId) return;
     setSaving(true);
     await apiCall(`/api/cars/${carId}/accept`, "POST");
@@ -175,8 +177,16 @@ export default function EditCar() {
     setLocation("/garage");
   }
 
+  async function deleteCar() {
+    if (!targetCar) return;
+    if (!confirm(`Удалить ${targetCar.make} ${targetCar.model}? Это действие нельзя отменить.`)) return;
+    await apiCall(`/api/cars/${targetCar.id}`, "DELETE");
+    await queryClient.invalidateQueries({ queryKey: ["/api/cars"] });
+    setLocation("/garage");
+  }
+
   async function useSilhouette() {
-    const carId = targetCar?.id;
+    const carId = targetCar?.id ?? createdCarId;
     if (carId) {
       await apiCall(`/api/cars/${carId}/use-silhouette`, "POST", { silhouetteColor: silColor });
       await queryClient.invalidateQueries({ queryKey: ["/api/cars"] });
@@ -469,7 +479,7 @@ export default function EditCar() {
         </div>
       </div>
 
-      <div className="px-5 pb-10 pt-4">
+      <div className="px-5 pb-10 pt-4 flex flex-col gap-3">
         <button
           onClick={saveCar}
           disabled={saving || !make || !model}
@@ -477,6 +487,15 @@ export default function EditCar() {
         >
           {saving ? "Сохраняем..." : "Сохранить"}
         </button>
+        {!isNewMode && targetCar && (
+          <button
+            onClick={deleteCar}
+            className="w-full py-3.5 bg-red-500/10 border border-red-500/20 rounded-2xl font-bold text-red-400 flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+          >
+            <Trash2 className="w-4 h-4" />
+            Удалить автомобиль
+          </button>
+        )}
       </div>
     </div>
   );

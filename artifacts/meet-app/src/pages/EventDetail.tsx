@@ -1,15 +1,16 @@
 import { useState, useEffect } from "react";
 import { useRoute, useLocation } from "wouter";
-import { format, formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 import { ru } from "date-fns/locale";
 import { Layout } from "@/components/Layout";
 import {
   useGetEvent, useApplyToEvent, useGetMe, useGetEventApplications,
-  useGetMyCars, useCancelApplication, useGetMyApplications
+  useGetMyCars, useCancelApplication, useGetMyApplications, useGetUserById
 } from "@workspace/api-client-react";
 import {
   ChevronLeft, MapPin, Calendar as CalIcon, Users, ShieldCheck,
-  Clock, Lock, ExternalLink, CheckCircle2, HelpCircle, XCircle, Star, Settings2
+  Clock, Lock, ExternalLink, CheckCircle2, HelpCircle, XCircle, Star, Settings2,
+  Navigation, X, Car as CarIcon, Eye as EyeIcon, Flag
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -69,6 +70,7 @@ export default function EventDetail() {
   const { mutateAsync: cancel, isPending: isCancelling } = useCancelApplication();
 
   const countdown = useCountdown(event?.date || "", event?.endDate);
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
 
   const myApp = myApps?.find(a => a.eventId === eventId);
   const primaryCar = cars?.find(c => c.isPrimary) || cars?.[0];
@@ -76,6 +78,13 @@ export default function EventDetail() {
   const approvedParticipants = eventApps?.filter(a => a.status === "approved" && a.type === "participant") || [];
 
   const isOrganizer = user?.id === event?.organizerId;
+
+  function getRouteUrl() {
+    if (event?.lat && event?.lng) {
+      return `https://yandex.ru/maps/?rtext=~${event.lat},${event.lng}&rtt=auto`;
+    }
+    return `https://yandex.ru/maps/?text=${encodeURIComponent(event?.location || "")}`;
+  }
   const catMap: Record<string, string> = {
     motorsport: "Автоспорт", exhibition: "Выставки", cruise: "Покатушки", club: "Автоклубы"
   };
@@ -206,7 +215,15 @@ export default function EventDetail() {
             </div>
             <div>
               <p className="text-white">{event.location}</p>
-              <p className="text-primary cursor-pointer hover:underline">Проложить маршрут</p>
+              <a
+                href={getRouteUrl()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-primary font-semibold hover:underline"
+              >
+                <Navigation className="w-3.5 h-3.5" />
+                Проложить маршрут
+              </a>
             </div>
           </div>
 
@@ -294,7 +311,11 @@ export default function EventDetail() {
             <h3 className="font-bold text-lg mb-3">Участники</h3>
             <div className="space-y-2">
               {approvedParticipants.map(app => (
-                <div key={app.id} className="flex items-center gap-3 glass-panel p-3 rounded-xl">
+                <button
+                  key={app.id}
+                  onClick={() => setSelectedUserId(app.userId)}
+                  className="w-full flex items-center gap-3 glass-panel p-3 rounded-xl active:scale-[0.98] transition-all text-left"
+                >
                   <div className="w-9 h-9 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center font-black text-primary text-sm flex-shrink-0">
                     {app.userName?.[0]?.toUpperCase() || "?"}
                   </div>
@@ -324,10 +345,15 @@ export default function EventDetail() {
                       </span>
                     )}
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </div>
+        )}
+
+        {/* Participant profile modal */}
+        {selectedUserId && (
+          <ParticipantModal userId={selectedUserId} onClose={() => setSelectedUserId(null)} />
         )}
       </div>
 
@@ -487,5 +513,69 @@ export default function EventDetail() {
         </div>
       )}
     </Layout>
+  );
+}
+
+function ParticipantModal({ userId, onClose }: { userId: number; onClose: () => void }) {
+  const { data: profile, isLoading } = useGetUserById(userId);
+
+  const roleMap: Record<string, { label: string; icon: React.ReactNode }> = {
+    organizer: { label: "Организатор", icon: <ShieldCheck className="w-4 h-4" /> },
+    participant: { label: "Участник", icon: <Flag className="w-4 h-4" /> },
+    viewer: { label: "Зритель", icon: <EyeIcon className="w-4 h-4" /> },
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-end justify-center"
+      onClick={onClose}
+    >
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div
+        className="relative w-full max-w-md bg-[#111] border border-white/10 rounded-t-3xl p-6 pb-10"
+        onClick={e => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/8 flex items-center justify-center active:scale-90 transition-all"
+        >
+          <X className="w-4 h-4 text-white/50" />
+        </button>
+
+        <div className="w-12 h-1 rounded-full bg-white/20 mx-auto mb-5" />
+
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+          </div>
+        ) : profile ? (
+          <div>
+            <div className="flex items-center gap-4 mb-5">
+              <div className="w-16 h-16 rounded-2xl bg-primary/15 border border-primary/20 flex items-center justify-center font-black text-primary text-2xl overflow-hidden flex-shrink-0">
+                {profile.avatarUrl ? (
+                  <img src={profile.avatarUrl} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  (profile.displayName?.[0] || "?").toUpperCase()
+                )}
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-white">{profile.displayName}</h3>
+                {profile.username && (
+                  <p className="text-white/40 text-sm">@{profile.username}</p>
+                )}
+                {profile.role && (
+                  <div className="flex items-center gap-1.5 mt-1 text-primary text-xs font-bold">
+                    {roleMap[profile.role]?.icon}
+                    {roleMap[profile.role]?.label}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <p className="text-white/30 text-center py-4">Профиль не найден</p>
+        )}
+      </div>
+    </div>
   );
 }

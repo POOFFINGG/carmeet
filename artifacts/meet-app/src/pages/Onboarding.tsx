@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { useForm } from "react-hook-form";
@@ -7,8 +7,8 @@ import * as z from "zod";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { User, Eye, Flag, Shield, ChevronRight, Check } from "lucide-react";
-import { useCompleteOnboarding, useAddCar } from "@workspace/api-client-react";
+import { User, Eye, Flag, Shield, ChevronRight, Check, Camera, ExternalLink, Users2 } from "lucide-react";
+import { useCompleteOnboarding, useAddCar, useGetClubs } from "@workspace/api-client-react";
 import { getTgUser, cn } from "@/lib/utils";
 
 const CATEGORIES = [
@@ -42,10 +42,13 @@ type OnboardingData = z.infer<typeof onboardingSchema>;
 export default function Onboarding() {
   const [, setLocation] = useLocation();
   const [step, setStep] = useState(1);
+  const [avatarDataUrl, setAvatarDataUrl] = useState<string | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   const tgUser = getTgUser();
 
   const { mutateAsync: completeOnboarding, isPending: isSavingProfile } = useCompleteOnboarding();
   const { mutateAsync: addCar, isPending: isAddingCar } = useAddCar();
+  const { data: clubs } = useGetClubs({}, { query: { enabled: step === 5 } });
 
   const form = useForm<OnboardingData>({
     resolver: zodResolver(onboardingSchema),
@@ -61,7 +64,7 @@ export default function Onboarding() {
   const selectedCats = watch("interestCategories") || [];
   const selectedSilhouette = watch("viewerSilhouette");
 
-  const totalSteps = 4;
+  const totalSteps = 5;
 
   const onSubmit = async (data: OnboardingData) => {
     try {
@@ -70,6 +73,7 @@ export default function Onboarding() {
           telegramId: tgUser.id,
           username: tgUser.username,
           displayName: data.displayName,
+          avatarUrl: avatarDataUrl || undefined,
           role: data.role,
           viewerSilhouette: data.viewerSilhouette,
           organizationName: data.organizationName,
@@ -90,13 +94,13 @@ export default function Onboarding() {
         });
       }
 
-      setLocation("/garage");
+      setStep(5);
     } catch (error) {
       console.error("Onboarding failed", error);
     }
   };
 
-  const nextStep = () => setStep(s => Math.min(s + 1, totalSteps));
+  const nextStep = () => setStep(s => Math.min(s + 1, totalSteps - 1));
   const prevStep = () => setStep(s => Math.max(s - 1, 1));
 
   const isPending = isSavingProfile || isAddingCar;
@@ -110,6 +114,19 @@ export default function Onboarding() {
     }
   }
 
+  function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setAvatarDataUrl(reader.result as string);
+    reader.readAsDataURL(file);
+  }
+
+  // Filter clubs by selected interest categories
+  const recommendedClubs = clubs?.filter(c =>
+    !selectedCats.length || selectedCats.includes(c.category || "")
+  ) || clubs || [];
+
   return (
     <Layout showNav={false}>
       <div className="flex-1 flex flex-col pt-12 px-6">
@@ -117,7 +134,7 @@ export default function Onboarding() {
           <h1 className="text-2xl font-bold">Добро пожаловать в MEET</h1>
           <div className="flex gap-1">
             {Array.from({ length: totalSteps }).map((_, i) => (
-              <div key={i} className={cn("h-1 w-7 rounded-full transition-all", step > i ? "bg-primary" : "bg-white/10")} />
+              <div key={i} className={cn("h-1 w-6 rounded-full transition-all", step > i ? "bg-primary" : "bg-white/10")} />
             ))}
           </div>
         </div>
@@ -136,13 +153,23 @@ export default function Onboarding() {
 
               <div className="space-y-6 flex-1">
                 <div className="flex justify-center mb-8">
-                  <div className="w-24 h-24 rounded-full bg-secondary flex items-center justify-center border-4 border-card relative overflow-hidden">
-                    {tgUser.photo_url ? (
+                  <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+                  <button
+                    type="button"
+                    onClick={() => avatarInputRef.current?.click()}
+                    className="relative w-24 h-24 rounded-full bg-secondary flex items-center justify-center border-4 border-card overflow-hidden active:scale-95 transition-all group"
+                  >
+                    {avatarDataUrl ? (
+                      <img src={avatarDataUrl} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : tgUser.photo_url ? (
                       <img src={tgUser.photo_url} alt="Avatar" className="w-full h-full object-cover" />
                     ) : (
                       <User size={32} className="text-muted-foreground" />
                     )}
-                  </div>
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity flex items-center justify-center rounded-full">
+                      <Camera className="w-6 h-6 text-white" />
+                    </div>
+                  </button>
                 </div>
 
                 <div className="space-y-2">
@@ -341,9 +368,71 @@ export default function Onboarding() {
                   isLoading={isPending}
                   disabled={selectedCats.length === 0}
                 >
-                  Завершить
+                  Далее
                 </Button>
               </div>
+            </motion.div>
+          )}
+
+          {step === 5 && (
+            <motion.div
+              key="step5"
+              initial={{ x: 20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -20, opacity: 0 }}
+              className="flex-1 flex flex-col"
+            >
+              <h2 className="text-3xl font-black mb-2 text-gradient">Рекомендуемые клубы</h2>
+              <p className="text-muted-foreground mb-6">Присоединитесь к сообществам по вашим интересам.</p>
+
+              <div className="flex-1 overflow-y-auto space-y-3 pb-2">
+                {!clubs ? (
+                  <div className="flex flex-col gap-3">
+                    {[1, 2, 3].map(i => <div key={i} className="h-24 bg-white/5 rounded-2xl animate-pulse" />)}
+                  </div>
+                ) : recommendedClubs.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 text-center">
+                    <Users2 className="w-12 h-12 text-white/10 mb-3" />
+                    <p className="text-white/30 text-sm">Пока нет клубов по вашим интересам</p>
+                  </div>
+                ) : (
+                  recommendedClubs.map(club => (
+                    <div key={club.id} className="glass-panel p-4 rounded-2xl border border-white/8 flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-primary/15 border border-primary/20 flex items-center justify-center flex-shrink-0">
+                        {club.logoUrl ? (
+                          <img src={club.logoUrl} alt={club.name} className="w-10 h-10 rounded-xl object-cover" />
+                        ) : (
+                          <Users2 className="w-6 h-6 text-primary" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-white text-sm truncate">{club.name}</p>
+                        {club.description && (
+                          <p className="text-white/40 text-xs mt-0.5 truncate">{club.description}</p>
+                        )}
+                        <p className="text-white/25 text-[10px] mt-1">
+                          {club.membersCount || 0} участников
+                        </p>
+                      </div>
+                      {club.contactLink && (
+                        <a
+                          href={club.contactLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-primary/15 border border-primary/30 text-primary rounded-xl text-xs font-bold active:scale-95 transition-all"
+                        >
+                          Вступить
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <Button size="lg" className="w-full mt-4 mb-6" onClick={() => setLocation("/garage")}>
+                Начать пользоваться <ChevronRight className="ml-2 w-5 h-5" />
+              </Button>
             </motion.div>
           )}
         </AnimatePresence>

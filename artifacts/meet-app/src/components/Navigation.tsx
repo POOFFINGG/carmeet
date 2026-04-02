@@ -7,7 +7,7 @@ export function BottomNav() {
   const [location] = useLocation();
   const { data: user } = useGetMe({ query: { retry: false } });
   const { data: cars } = useGetMyCars({
-    query: { enabled: !!user && user.role !== "viewer", retry: false },
+    query: { enabled: !!user, retry: false },
   });
   const primaryCar = cars?.find((c) => c.isPrimary) || cars?.[0];
   const isGarageActive = location === "/garage";

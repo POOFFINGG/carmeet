@@ -23,7 +23,7 @@ export function BottomNav() {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pointer-events-none">
       <div className="pointer-events-auto w-full mx-4 mb-4 max-w-md">
-        <div className="flex items-center justify-between backdrop-blur-3xl bg-black/60 border border-white/10 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.7)] px-1 py-1">
+        <div className="flex items-center justify-between backdrop-blur-md bg-black/20 border border-white/5 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] px-1 py-1">
           {tabs.map((tab) => {
             const isActive = location === tab.href;
 

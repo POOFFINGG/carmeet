@@ -93,11 +93,12 @@ export default function Onboarding() {
           }
         });
       }
-
-      setStep(5);
     } catch (error) {
-      console.error("Onboarding failed", error);
+      console.error("Onboarding API unavailable, continuing as demo:", error);
     }
+
+    localStorage.setItem("onboarding_done", "1");
+    setStep(5);
   };
 
   const nextStep = () => setStep(s => Math.min(s + 1, totalSteps - 1));

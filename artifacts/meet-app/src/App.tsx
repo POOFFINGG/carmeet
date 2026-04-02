@@ -42,12 +42,15 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (isReady && !isLoading) {
-      if (error || !user?.onboardingComplete) {
+      const localDone = localStorage.getItem("onboarding_done") === "1";
+      if (user?.onboardingComplete || localDone) {
+        if (location === "/" || location === "/onboarding") {
+          setLocation("/garage");
+        }
+      } else if (!user && !localDone) {
         if (location !== "/onboarding") {
           setLocation("/onboarding");
         }
-      } else if (location === "/" || location === "/onboarding") {
-        setLocation("/garage");
       }
     }
   }, [isReady, isLoading, user, error, location, setLocation]);

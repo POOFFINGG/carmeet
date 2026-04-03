@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { useGetMyCars, useGetMe } from "@workspace/api-client-react";
-import { Plus, Settings, Car, Camera, Pencil } from "lucide-react";
+import { Plus, Settings, Car, Camera } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getTgUser } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
@@ -160,84 +160,8 @@ export default function Garage() {
           </button>
         </div>
 
-        {/* Spacer — pushes bottom info down; car is rendered absolutely above */}
+        {/* Spacer */}
         <div className="flex-1" />
-
-        {/* ── Bottom info: car name + switcher ── */}
-        <div className="px-5 pb-28 flex-shrink-0">
-
-          {activeCar && (
-            <div className="mb-3">
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="inline-flex bg-primary/90 text-white text-[10px] font-black px-3 py-1 rounded-lg uppercase tracking-wider">
-                  {activeCar.isPrimary ? "Основное авто" : "Второй автомобиль"}
-                </span>
-                <button
-                  onClick={() => setLocation(`/settings/car/${activeCar.id}`)}
-                  className="w-7 h-7 rounded-lg bg-white/8 border border-white/10 flex items-center justify-center active:scale-90 transition-all"
-                >
-                  <Pencil className="w-3.5 h-3.5 text-white/50" />
-                </button>
-              </div>
-              <h1 className="text-3xl font-black text-white leading-tight">
-                {activeCar.make} <span className="text-white/60 font-bold">{activeCar.model}</span>
-              </h1>
-              {(activeCar.year || activeCar.color) && (
-                <p className="text-white/35 text-sm mt-0.5">
-                  {[activeCar.year && `${activeCar.year} г.`, activeCar.color].filter(Boolean).join(" · ")}
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Car switcher strip */}
-          {!carsLoading && (
-            <div className="flex gap-2.5 overflow-x-auto pb-1 -mx-1 px-1 no-scrollbar">
-              {cars?.map(car => {
-                const isActive = car.id === (activeCar?.id);
-                return (
-                  <button
-                    key={car.id}
-                    onClick={() => setSelectedCarId(car.id)}
-                    className={cn(
-                      "flex-shrink-0 flex flex-col items-center gap-1.5 p-2.5 rounded-2xl border transition-all active:scale-95",
-                      isActive
-                        ? "bg-primary/15 border-primary/50"
-                        : "bg-white/5 border-white/8"
-                    )}
-                  >
-                    <div className={cn(
-                      "w-14 h-9 rounded-xl flex items-center justify-center",
-                      isActive ? "bg-primary/10" : "bg-white/5"
-                    )}>
-                      <Car className={cn("w-6 h-6", isActive ? "text-primary" : "text-white/30")} />
-                    </div>
-                    <div className="text-center min-w-0">
-                      <p className={cn("text-[10px] font-black leading-none truncate max-w-[64px]", isActive ? "text-white" : "text-white/50")}>
-                        {car.make}
-                      </p>
-                      <p className={cn("text-[9px] leading-none mt-0.5 truncate max-w-[64px]", isActive ? "text-white/50" : "text-white/25")}>
-                        {car.model}
-                      </p>
-                    </div>
-                    {car.isPrimary && (
-                      <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                    )}
-                  </button>
-                );
-              })}
-              <button
-                onClick={() => setLocation("/settings/car/new")}
-                className="flex-shrink-0 flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-2xl border border-dashed border-white/12 bg-white/3 active:scale-95 transition-all w-[72px]"
-              >
-                <Plus className="w-5 h-5 text-white/25" />
-                <p className="text-[9px] text-white/25 font-bold">Добавить</p>
-              </button>
-            </div>
-          )}
-
-
-        </div>
       </div>
 
       <BottomNav />

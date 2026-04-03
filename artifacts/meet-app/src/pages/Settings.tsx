@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { ChevronLeft, Car, UserCog, Tag, MessageCircle, ChevronRight, Check } from "lucide-react";
+import { ChevronLeft, Car, UserCog, Tag, MessageCircle, ChevronRight, Check, Plus, Pencil } from "lucide-react";
 import { useGetMe, useGetMyCars } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
@@ -213,23 +213,63 @@ export default function Settings() {
         {/* ── Автомобиль ── */}
         <div>
           <p className="text-white/30 text-xs font-bold uppercase tracking-widest mb-2 px-1">Автомобиль</p>
-          <div className="bg-white/4 rounded-2xl border border-white/6 overflow-hidden">
-            <button
-              onClick={() => setLocation("/settings/car")}
-              className="w-full flex items-center justify-between px-4 py-4 active:bg-white/4 transition-all"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center">
-                  <Car className="w-4.5 h-4.5 text-primary" />
+
+          {/* Primary car info */}
+          {cars && cars.length > 0 && (() => {
+            const primary = cars.find(c => c.isPrimary) || cars[0];
+            return (
+              <div className="bg-white/4 rounded-2xl border border-white/6 px-4 py-3 mb-3">
+                <div className="flex items-center justify-between mb-0.5">
+                  <span className="inline-flex bg-primary/90 text-white text-[10px] font-black px-2.5 py-0.5 rounded-md uppercase tracking-wider">
+                    {primary.isPrimary ? "Основное авто" : "Второй автомобиль"}
+                  </span>
+                  <button
+                    onClick={() => setLocation(`/settings/car/${primary.id}`)}
+                    className="w-7 h-7 rounded-lg bg-white/8 border border-white/10 flex items-center justify-center active:scale-90 transition-all"
+                  >
+                    <Pencil className="w-3.5 h-3.5 text-white/50" />
+                  </button>
                 </div>
-                <div className="text-left">
-                  <p className="text-white font-bold text-sm">Изменить автомобиль</p>
+                <h2 className="text-xl font-black text-white leading-tight mt-1">
+                  {primary.make} <span className="text-white/60 font-bold">{primary.model}</span>
+                </h2>
+                {(primary.year || primary.color) && (
                   <p className="text-white/35 text-xs mt-0.5">
-                    {cars?.[0] ? `${cars[0].make} ${cars[0].model}` : "Не добавлен"}
+                    {[primary.year && `${primary.year} г.`, primary.color].filter(Boolean).join(" · ")}
+                  </p>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* Car switcher strip */}
+          <div className="flex gap-2.5 overflow-x-auto pb-1 -mx-1 px-1 no-scrollbar">
+            {cars?.map(car => (
+              <button
+                key={car.id}
+                onClick={() => setLocation(`/settings/car/${car.id}`)}
+                className="flex-shrink-0 flex flex-col items-center gap-1.5 p-2.5 rounded-2xl border bg-white/4 border-white/8 transition-all active:scale-95"
+              >
+                <div className="w-14 h-9 rounded-xl bg-white/5 flex items-center justify-center">
+                  <Car className="w-6 h-6 text-white/40" />
+                </div>
+                <div className="text-center min-w-0">
+                  <p className="text-[10px] font-black leading-none truncate max-w-[64px] text-white/70">
+                    {car.make}
+                  </p>
+                  <p className="text-[9px] leading-none mt-0.5 truncate max-w-[64px] text-white/35">
+                    {car.model}
                   </p>
                 </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-white/25" />
+                {car.isPrimary && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
+              </button>
+            ))}
+            <button
+              onClick={() => setLocation("/settings/car/new")}
+              className="flex-shrink-0 flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-2xl border border-dashed border-white/12 bg-white/3 active:scale-95 transition-all w-[72px]"
+            >
+              <Plus className="w-5 h-5 text-white/25" />
+              <p className="text-[9px] text-white/25 font-bold">Добавить</p>
             </button>
           </div>
         </div>

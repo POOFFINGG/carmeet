@@ -80,9 +80,9 @@ export default function Calendar() {
 
   return (
     <Layout>
-      <div className="pt-6 px-5 pb-2">
+      <div className="pt-3 px-5 pb-2">
         {/* Header */}
-        <div className="flex items-start justify-between mb-4">
+        <div className="flex items-start justify-between mb-2">
           <div>
             <h1 className="text-3xl font-black text-gradient">Календарь</h1>
             <p className="text-white/40 text-sm mt-0.5">
@@ -100,7 +100,7 @@ export default function Calendar() {
         </div>
 
         {/* Month navigator */}
-        <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center justify-between mb-3">
           <button
             onClick={() => { setCurrentMonth(subMonths(currentMonth, 1)); setSelectedDate(null); }}
             className="w-10 h-10 glass-panel rounded-full flex items-center justify-center active:scale-90 transition-all"

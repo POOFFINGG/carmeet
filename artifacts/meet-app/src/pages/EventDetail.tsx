@@ -157,16 +157,17 @@ export default function EventDetail() {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
 
-        {/* Private badge */}
-        {event.isPrivate && (
-          <div className="absolute bottom-4 left-6 flex items-center gap-1.5 px-3 py-1.5 bg-black/60 backdrop-blur-sm rounded-xl border border-white/15">
-            <Lock className="w-3.5 h-3.5 text-white/70" />
-            <span className="text-xs text-white/70 font-semibold">По приглашению</span>
-          </div>
-        )}
       </div>
 
       <div className="px-6 -mt-6 relative z-10 pb-36">
+        {/* Private badge */}
+        {event.isPrivate && (
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/8 backdrop-blur-sm rounded-xl border border-white/15 mb-2">
+            <Lock className="w-3.5 h-3.5 text-white/60" />
+            <span className="text-xs text-white/60 font-semibold">По приглашению</span>
+          </div>
+        )}
+
         {/* Category + countdown */}
         <div className="flex items-center gap-2 mb-3">
           <div className="flex-shrink-0 px-3 py-1 bg-primary text-white text-[10px] font-bold rounded-lg shadow-glow uppercase tracking-wider">

@@ -151,17 +151,22 @@ export default function Calendar() {
                   !isSelected && !isTodayDate && hasEvents && "bg-white/5",
                 )}
               >
+                {/* "+ more" badge — top-left corner */}
+                {hasEvents && dayEvents.length > 6 && (
+                  <span className="absolute top-0.5 left-1 text-[7px] font-black leading-none text-white/60">
+                    +
+                  </span>
+                )}
                 <span className={cn(
                   "text-sm font-bold leading-none",
                   isSelected ? "text-white" : isTodayDate ? "text-primary" : "text-white/80"
                 )}>
                   {format(day, "d")}
                 </span>
-                {/* Event dots — up to 6, 2 rows of 3, + indicator if more */}
+                {/* Event dots — up to 6, 2 rows of 3 */}
                 {hasEvents && (() => {
                   const dotColor = isSelected ? "rgba(255,255,255,0.8)" : undefined;
                   const shown = dayEvents.slice(0, 6);
-                  const hasMore = dayEvents.length > 6;
                   const rows: typeof shown[] = [];
                   for (let i = 0; i < shown.length; i += 3) rows.push(shown.slice(i, i + 3));
                   return (
@@ -177,7 +182,6 @@ export default function Calendar() {
                           ))}
                         </div>
                       ))}
-                      {hasMore && <span className="text-[6px] font-black leading-none text-white/50">+</span>}
                     </div>
                   );
                 })()}

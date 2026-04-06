@@ -153,9 +153,7 @@ export default function Calendar() {
               >
                 {/* "+ more" badge — top-left corner */}
                 {hasEvents && dayEvents.length > 6 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary flex items-center justify-center text-[9px] font-black text-white leading-none">
-                    +
-                  </span>
+                  <span className="absolute top-1 right-1 w-0.5 h-3 rounded-full bg-white/30" />
                 )}
                 <span className={cn(
                   "text-sm font-bold leading-none",

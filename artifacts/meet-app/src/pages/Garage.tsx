@@ -53,6 +53,7 @@ export default function Garage() {
         src={hasAiImage ? carDisplayUrl : hummerImg}
         alt="" aria-hidden
         className="absolute inset-0 w-full h-full object-cover object-center"
+        style={{ transform: "scaleX(-1)" }}
         onError={(e) => {
           (e.target as HTMLImageElement).src = hummerImg;
         }}

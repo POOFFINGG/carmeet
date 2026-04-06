@@ -136,7 +136,7 @@ export default function EventDetail() {
       <div className="relative h-72 flex-shrink-0">
         <button
           onClick={() => window.history.back()}
-          className="absolute top-12 left-6 z-20 w-10 h-10 glass-panel rounded-full flex items-center justify-center text-white backdrop-blur-xl"
+          className="absolute top-5 left-5 z-20 w-10 h-10 glass-panel rounded-full flex items-center justify-center text-white backdrop-blur-xl"
         >
           <ChevronLeft className="w-6 h-6" />
         </button>
@@ -144,7 +144,7 @@ export default function EventDetail() {
         {isOrganizer && (
           <button
             onClick={() => setLocation(`/events/${eventId}/manage`)}
-            className="absolute top-12 right-6 z-20 w-10 h-10 glass-panel rounded-full flex items-center justify-center text-white backdrop-blur-xl"
+            className="absolute top-5 right-5 z-20 w-10 h-10 glass-panel rounded-full flex items-center justify-center text-white backdrop-blur-xl"
           >
             <Settings2 className="w-5 h-5" />
           </button>
@@ -166,14 +166,14 @@ export default function EventDetail() {
         )}
       </div>
 
-      <div className="px-6 -mt-12 relative z-10 pb-36">
+      <div className="px-6 -mt-6 relative z-10 pb-36">
         {/* Category + countdown */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="inline-block px-3 py-1 bg-primary text-white text-[10px] font-bold rounded-lg shadow-glow uppercase tracking-wider">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="flex-shrink-0 px-3 py-1 bg-primary text-white text-[10px] font-bold rounded-lg shadow-glow uppercase tracking-wider">
             {catMap[event.category] || event.category}
           </div>
           {!isPast && (
-            <div className="flex items-center gap-1.5 px-3 py-1 bg-white/8 rounded-xl border border-white/10">
+            <div className="ml-auto flex-shrink-0 flex items-center gap-1.5 px-3 py-1 bg-white/8 rounded-xl border border-white/10">
               <Clock className="w-3.5 h-3.5 text-primary" />
               <span className="text-xs font-bold text-white">{countdown}</span>
             </div>

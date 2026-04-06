@@ -2,7 +2,6 @@ import { useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { useGetMyCars, useGetMe } from "@workspace/api-client-react";
 import { Plus, Settings, Car, Camera } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { getTgUser } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { BottomNav } from "@/components/Navigation";
@@ -10,11 +9,6 @@ import hummerImg from "@assets/9003368582ac3463e0bbfc01325d2e7d_1775136075973.jp
 
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
-const AI_STATUS_BADGE: Record<string, { label: string; color: string }> = {
-  pending_moderation: { label: "На модерации", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
-  approved: { label: "Одобрено", color: "bg-green-500/20 text-green-400 border-green-500/30" },
-  rejected: { label: "Отклонено", color: "bg-red-500/20 text-red-400 border-red-500/30" },
-};
 
 export default function Garage() {
   const [, setLocation] = useLocation();
@@ -30,7 +24,6 @@ export default function Garage() {
   const primaryCar = cars?.find(c => c.isPrimary) || cars?.[0];
   const activeCar = (selectedCarId ? cars?.find(c => c.id === selectedCarId) : null) ?? primaryCar;
 
-  const showAiBadge = activeCar?.aiStatus && activeCar.aiStatus !== "none" && activeCar.aiStatus !== "generating";
   const hasAiImage = (activeCar?.aiStatus === "approved" || activeCar?.aiStatus === "pending_moderation" || activeCar?.aiStatus === "result_ready") && activeCar?.aiStyledImageUrl;
   const carDisplayUrl = hasAiImage
     ? activeCar.aiStyledImageUrl
@@ -71,17 +64,6 @@ export default function Garage() {
       <div className="absolute inset-0 pointer-events-none"
         style={{ background: "linear-gradient(to bottom, rgba(13,13,13,0.6) 0%, transparent 30%, transparent 55%, rgba(13,13,13,0.92) 100%)" }} />
 
-      {/* ── AI status badge (when car is in the composed JPEG background) ── */}
-      {showAiBadge && activeCar && hasAiImage && (
-        <div className="absolute z-10 right-5" style={{ top: "32%" }}>
-          <span className={cn(
-            "text-[10px] font-bold px-2.5 py-1 rounded-lg border",
-            AI_STATUS_BADGE[activeCar.aiStatus]?.color ?? "bg-white/10 text-white/50 border-white/10"
-          )}>
-            {AI_STATUS_BADGE[activeCar.aiStatus]?.label ?? activeCar.aiStatus}
-          </span>
-        </div>
-      )}
 
       {/* ── Car overlay: hidden (car shown as background) ── */}
       <div className="absolute inset-0 z-10 flex items-center justify-center px-4 pointer-events-none">
@@ -97,16 +79,6 @@ export default function Garage() {
                 filter: "drop-shadow(0 20px 40px rgba(0,0,0,0.9)) drop-shadow(0 4px 12px rgba(0,0,0,0.7))",
               }}
             />
-            {showAiBadge && activeCar && (
-              <div className="absolute top-0 right-0">
-                <span className={cn(
-                  "text-[10px] font-bold px-2.5 py-1 rounded-lg border",
-                  AI_STATUS_BADGE[activeCar.aiStatus]?.color ?? "bg-white/10 text-white/50 border-white/10"
-                )}>
-                  {AI_STATUS_BADGE[activeCar.aiStatus]?.label ?? activeCar.aiStatus}
-                </span>
-              </div>
-            )}
           </div>
         ) : !carsLoading && !activeCar ? (
           <button
@@ -131,7 +103,7 @@ export default function Garage() {
               <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
               <button
                 onClick={() => avatarInputRef.current?.click()}
-                className="relative w-11 h-11 rounded-full bg-primary/20 border-2 border-primary overflow-hidden flex items-center justify-center font-black text-lg text-primary active:scale-90 transition-all"
+                className="relative w-11 h-11 rounded-full bg-white/10 border border-white/20 overflow-hidden flex items-center justify-center font-black text-lg text-white/80 active:scale-90 transition-all"
               >
                 {user?.avatarUrl ? (
                   <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />

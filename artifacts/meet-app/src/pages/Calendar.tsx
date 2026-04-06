@@ -80,9 +80,9 @@ export default function Calendar() {
 
   return (
     <Layout>
-      <div className="pt-12 px-5 pb-2">
+      <div className="pt-6 px-5 pb-2">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-start justify-between mb-4">
           <div>
             <h1 className="text-3xl font-black text-gradient">Календарь</h1>
             <p className="text-white/40 text-sm mt-0.5">
@@ -157,18 +157,30 @@ export default function Calendar() {
                 )}>
                   {format(day, "d")}
                 </span>
-                {/* Event dots */}
-                {hasEvents && (
-                  <div className="flex gap-0.5 mt-1.5">
-                    {dayEvents.slice(0, 3).map((ev, j) => (
-                      <div
-                        key={j}
-                        className="w-1.5 h-1.5 rounded-full"
-                        style={{ background: isSelected ? "rgba(255,255,255,0.8)" : CATEGORY_COLORS[ev.category] || "#e53935" }}
-                      />
-                    ))}
-                  </div>
-                )}
+                {/* Event dots — up to 6, 2 rows of 3, + indicator if more */}
+                {hasEvents && (() => {
+                  const dotColor = isSelected ? "rgba(255,255,255,0.8)" : undefined;
+                  const shown = dayEvents.slice(0, 6);
+                  const hasMore = dayEvents.length > 6;
+                  const rows: typeof shown[] = [];
+                  for (let i = 0; i < shown.length; i += 3) rows.push(shown.slice(i, i + 3));
+                  return (
+                    <div className="flex flex-col items-center gap-0.5 mt-1">
+                      {rows.map((row, ri) => (
+                        <div key={ri} className="flex gap-0.5">
+                          {row.map((ev, j) => (
+                            <div
+                              key={j}
+                              className="w-1 h-1 rounded-full flex-shrink-0"
+                              style={{ background: dotColor || CATEGORY_COLORS[ev.category] || "#e53935" }}
+                            />
+                          ))}
+                        </div>
+                      ))}
+                      {hasMore && <span className="text-[6px] font-black leading-none text-white/50">+</span>}
+                    </div>
+                  );
+                })()}
               </button>
             );
           })}
@@ -179,7 +191,7 @@ export default function Calendar() {
       <div className="mx-5 border-t border-white/8 mb-4" />
 
       {/* Events list */}
-      <div className="px-4 pb-8 flex flex-col gap-3">
+      <div className="px-4 pb-4 flex flex-col gap-3">
         {selectedDate && selectedEvents.length === 0 ? (
           <div className="py-12 flex flex-col items-center text-center">
             <div className="text-3xl mb-3">🏁</div>

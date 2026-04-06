@@ -255,7 +255,7 @@ export default function MapView() {
       <div ref={mapRef} className="flex-1 w-full" />
 
       {/* Legend */}
-      <div className="absolute bottom-20 left-2 z-[999] flex flex-col gap-1.5">
+      <div className="absolute bottom-24 left-2 z-[999] flex flex-col gap-1.5">
         {Object.entries(CATEGORY_LABELS).map(([key, label]) => {
           const count = events?.filter(e => e.category === key && e.lat && e.lng).length || 0;
           if (!count) return null;

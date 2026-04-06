@@ -151,9 +151,11 @@ export default function Calendar() {
                   !isSelected && !isTodayDate && hasEvents && "bg-white/5",
                 )}
               >
-                {/* "+ more" badge — top-left corner */}
+                {/* overflow badge — top-right, frosted pill */}
                 {hasEvents && dayEvents.length > 6 && (
-                  <span className="absolute top-1 right-1 w-0.5 h-3 rounded-full bg-white/30" />
+                  <span className="absolute -top-1.5 -right-1.5 px-1 py-px rounded-full bg-black/50 border border-white/15 backdrop-blur-sm text-[8px] font-bold text-white/45 leading-none">
+                    +{dayEvents.length - 6}
+                  </span>
                 )}
                 <span className={cn(
                   "text-sm font-bold leading-none",

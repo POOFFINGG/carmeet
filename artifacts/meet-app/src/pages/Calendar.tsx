@@ -153,7 +153,7 @@ export default function Calendar() {
               >
                 {/* "+ more" badge — top-left corner */}
                 {hasEvents && dayEvents.length > 6 && (
-                  <span className="absolute top-0.5 right-1 text-xs font-black leading-none text-white/70">
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary flex items-center justify-center text-[9px] font-black text-white leading-none">
                     +
                   </span>
                 )}

@@ -146,7 +146,7 @@ export default function Calendar() {
                 className={cn(
                   "relative flex flex-col items-center py-2 rounded-2xl transition-all active:scale-90",
                   !isCurrentMonth && "opacity-20 pointer-events-none",
-                  isSelected && "bg-primary shadow-glow",
+                  isSelected && "bg-primary/20 ring-1 ring-primary/60",
                   !isSelected && isTodayDate && "bg-white/10",
                   !isSelected && !isTodayDate && hasEvents && "bg-white/5",
                 )}
@@ -165,7 +165,6 @@ export default function Calendar() {
                 </span>
                 {/* Event dots — up to 6, 2 rows of 3 */}
                 {hasEvents && (() => {
-                  const dotColor = isSelected ? "rgba(255,255,255,0.8)" : undefined;
                   const shown = dayEvents.slice(0, 6);
                   const rows: typeof shown[] = [];
                   for (let i = 0; i < shown.length; i += 3) rows.push(shown.slice(i, i + 3));
@@ -177,7 +176,7 @@ export default function Calendar() {
                             <div
                               key={j}
                               className="w-1 h-1 rounded-full flex-shrink-0"
-                              style={{ background: dotColor || CATEGORY_COLORS[ev.category] || "#e53935" }}
+                              style={{ background: CATEGORY_COLORS[ev.category] || "#e53935" }}
                             />
                           ))}
                         </div>

@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { useGetMyCars, useGetMe } from "@workspace/api-client-react";
-import { Plus, Settings, Car, Camera } from "lucide-react";
+import { Plus, Settings, Camera } from "lucide-react";
 import { getTgUser } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { BottomNav } from "@/components/Navigation";
@@ -16,13 +16,10 @@ export default function Garage() {
   const tgUser = getTgUser();
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
-  const [selectedCarId, setSelectedCarId] = useState<number | null>(null);
-
   const { data: user } = useGetMe({ query: { retry: false } });
   const { data: cars, isLoading: carsLoading } = useGetMyCars({ query: { enabled: !!user } });
 
-  const primaryCar = cars?.find(c => c.isPrimary) || cars?.[0];
-  const activeCar = (selectedCarId ? cars?.find(c => c.id === selectedCarId) : null) ?? primaryCar;
+  const activeCar = cars?.find(c => c.isPrimary) || cars?.[0];
 
   const hasAiImage = (activeCar?.aiStatus === "approved" || activeCar?.aiStatus === "pending_moderation" || activeCar?.aiStatus === "result_ready") && activeCar?.aiStyledImageUrl;
   const carDisplayUrl = hasAiImage
@@ -53,7 +50,7 @@ export default function Garage() {
         src={hasAiImage ? carDisplayUrl : hummerImg}
         alt="" aria-hidden
         className="absolute inset-0 w-full h-full object-cover object-center"
-        style={{ transform: "scaleX(-1)" }}
+        style={{  }}
         onError={(e) => {
           (e.target as HTMLImageElement).src = hummerImg;
         }}

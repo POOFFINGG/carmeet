@@ -137,18 +137,18 @@ export default function EditCar() {
     if (attempts >= MAX_ATTEMPTS) return;
     setStage("generating");
 
-    // Save car data first if not saved
-    let carId = targetCar?.id;
-    if (!carId) {
-      const isFirstCar = !cars?.length;
-      const created = await apiCall("/api/cars", "POST", { make, model, year: year ? parseInt(year) : null, color, silhouetteColor: silColor, isPrimary: isFirstCar });
-      carId = created.id;
-      setCreatedCarId(created.id);
-      await queryClient.invalidateQueries({ queryKey: ["/api/cars"] });
-    }
-
     try {
-      // Call real AI pipeline (takes 5–15 seconds)
+      // Save car data first if not saved
+      let carId = targetCar?.id;
+      if (!carId) {
+        const isFirstCar = !cars?.length;
+        const created = await apiCall("/api/cars", "POST", { make, model, year: year ? parseInt(year) : null, color, silhouetteColor: silColor, isPrimary: isFirstCar });
+        carId = created.id;
+        setCreatedCarId(created.id);
+        await queryClient.invalidateQueries({ queryKey: ["/api/cars"] });
+      }
+
+      // Call real AI pipeline (takes 30–120 seconds)
       const result = await apiCall(`/api/cars/${carId}/generate`, "POST", { sourcePhotos: photos });
 
       if (result.error) {
@@ -161,8 +161,8 @@ export default function EditCar() {
       setGeneratedUrl(result.aiStyledImageUrl);
       setAttempts(newAttempts);
       setStage("result");
-    } catch {
-      alert("Не удалось обработать фото. Попробуйте другое.");
+    } catch (err: any) {
+      alert("Не удалось обработать фото. " + (err?.message ?? "Попробуйте другое."));
       setStage("photos");
     }
   }

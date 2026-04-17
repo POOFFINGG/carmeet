@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { ChevronLeft, Car, UserCog, Tag, MessageCircle, ChevronRight, Check, Plus, Pencil } from "lucide-react";
+import { ChevronLeft, UserCog, Tag, MessageCircle, ChevronRight, Check, Plus, Pencil } from "lucide-react";
 import { useGetMe, useGetMyCars } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { getTgUser } from "@/lib/utils";
+import hummerImg from "@assets/9003368582ac3463e0bbfc01325d2e7d_1775136075973.jpg";
 
 const CATEGORIES = [
   { id: "motorsport", label: "Автоспорт", emoji: "🏁" },
@@ -34,6 +35,23 @@ export default function Settings() {
 
   const tgUser = getTgUser();
   const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+  async function setPrimary(carId: number) {
+    const car = cars?.find(c => c.id === carId);
+    if (!car) return;
+    await fetch(`${BASE}/api/cars/${carId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "x-telegram-id": tgUser.id },
+      body: JSON.stringify({
+        make: car.make,
+        model: car.model,
+        year: car.year,
+        color: car.color,
+        isPrimary: true,
+      }),
+    });
+    await queryClient.invalidateQueries({ queryKey: ["/api/cars"] });
+  }
 
   async function patchUser(body: object) {
     setSaving(true);
@@ -212,64 +230,74 @@ export default function Settings() {
 
         {/* ── Автомобиль ── */}
         <div>
-          <p className="text-white/30 text-xs font-bold uppercase tracking-widest mb-2 px-1">Автомобиль</p>
+          <p className="text-white/30 text-xs font-bold uppercase tracking-widest mb-2 px-1">Гараж</p>
+          <p className="text-white/35 text-xs px-1 mb-3">Нажми на авто, чтобы выбрать его для гаража</p>
 
-          {/* Primary car info */}
-          {cars && cars.length > 0 && (() => {
-            const primary = cars.find(c => c.isPrimary) || cars[0];
-            return (
-              <div className="bg-white/4 rounded-2xl border border-white/6 px-4 py-3 mb-3">
-                <div className="flex items-center justify-between mb-0.5">
-                  <span className="inline-flex bg-primary/90 text-white text-[10px] font-black px-2.5 py-0.5 rounded-md uppercase tracking-wider">
-                    {primary.isPrimary ? "Основное авто" : "Второй автомобиль"}
-                  </span>
+          <div className="flex flex-col gap-2">
+            {cars?.map(car => {
+              const isActive = car.isPrimary || (!cars.some(c => c.isPrimary) && cars[0]?.id === car.id);
+              const hasImg = (car.aiStatus === "approved" || car.aiStatus === "pending_moderation" || car.aiStatus === "result_ready") && car.aiStyledImageUrl;
+              return (
+                <div
+                  key={car.id}
+                  className={cn(
+                    "flex items-center gap-3 rounded-2xl border px-3 py-2.5 transition-all",
+                    isActive ? "bg-primary/10 border-primary/40" : "bg-white/4 border-white/8"
+                  )}
+                >
+                  {/* Thumbnail */}
                   <button
-                    onClick={() => setLocation(`/settings/car/${primary.id}`)}
-                    className="w-7 h-7 rounded-lg bg-white/8 border border-white/10 flex items-center justify-center active:scale-90 transition-all"
+                    onClick={() => !isActive && setPrimary(car.id)}
+                    className="flex-shrink-0 w-16 h-12 rounded-xl overflow-hidden border border-white/10 active:scale-95 transition-all"
+                  >
+                    <img
+                      src={hasImg ? car.aiStyledImageUrl! : hummerImg}
+                      alt={`${car.make} ${car.model}`}
+                      className="w-full h-full object-cover"
+                      onError={(e) => { (e.target as HTMLImageElement).src = hummerImg; }}
+                    />
+                  </button>
+
+                  {/* Info */}
+                  <button
+                    onClick={() => !isActive && setPrimary(car.id)}
+                    className="flex-1 min-w-0 text-left active:opacity-70 transition-all"
+                  >
+                    <p className={cn("font-black text-sm leading-tight", isActive ? "text-white" : "text-white/70")}>
+                      {car.make} {car.model}
+                    </p>
+                    {(car.year || car.color) && (
+                      <p className="text-white/35 text-xs mt-0.5">
+                        {[car.year && `${car.year} г.`, car.color].filter(Boolean).join(" · ")}
+                      </p>
+                    )}
+                    {isActive && (
+                      <span className="inline-flex mt-1 bg-primary/80 text-white text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider">
+                        В гараже
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Edit button */}
+                  <button
+                    onClick={() => setLocation(`/settings/car/${car.id}`)}
+                    className="flex-shrink-0 w-8 h-8 rounded-xl bg-white/8 border border-white/10 flex items-center justify-center active:scale-90 transition-all"
                   >
                     <Pencil className="w-3.5 h-3.5 text-white/50" />
                   </button>
                 </div>
-                <h2 className="text-xl font-black text-white leading-tight mt-1">
-                  {primary.make} <span className="text-white/60 font-bold">{primary.model}</span>
-                </h2>
-                {(primary.year || primary.color) && (
-                  <p className="text-white/35 text-xs mt-0.5">
-                    {[primary.year && `${primary.year} г.`, primary.color].filter(Boolean).join(" · ")}
-                  </p>
-                )}
-              </div>
-            );
-          })()}
+              );
+            })}
 
-          {/* Car switcher strip */}
-          <div className="flex gap-2.5 overflow-x-auto pb-1 -mx-1 px-1 no-scrollbar">
-            {cars?.map(car => (
-              <button
-                key={car.id}
-                onClick={() => setLocation(`/settings/car/${car.id}`)}
-                className="flex-shrink-0 flex flex-col items-center gap-1.5 p-2.5 rounded-2xl border bg-white/4 border-white/8 transition-all active:scale-95"
-              >
-                <div className="w-14 h-9 rounded-xl bg-white/5 flex items-center justify-center">
-                  <Car className="w-6 h-6 text-white/40" />
-                </div>
-                <div className="text-center min-w-0">
-                  <p className="text-[10px] font-black leading-none truncate max-w-[64px] text-white/70">
-                    {car.make}
-                  </p>
-                  <p className="text-[9px] leading-none mt-0.5 truncate max-w-[64px] text-white/35">
-                    {car.model}
-                  </p>
-                </div>
-                {car.isPrimary && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
-              </button>
-            ))}
+            {/* Add new car */}
             <button
               onClick={() => setLocation("/settings/car/new")}
-              className="flex-shrink-0 flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-2xl border border-dashed border-white/12 bg-white/3 active:scale-95 transition-all w-[72px]"
+              className="flex items-center gap-3 rounded-2xl border border-dashed border-white/12 px-3 py-3 active:scale-[0.98] transition-all"
             >
-              <Plus className="w-5 h-5 text-white/25" />
-              <p className="text-[9px] text-white/25 font-bold">Добавить</p>
+              <div className="w-16 h-12 rounded-xl border border-dashed border-white/15 flex items-center justify-center">
+                <Plus className="w-5 h-5 text-white/30" />
+              </div>
+              <p className="text-white/30 text-sm font-bold">Добавить автомобиль</p>
             </button>
           </div>
         </div>

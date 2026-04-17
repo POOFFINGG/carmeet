@@ -137,7 +137,7 @@ router.post("/cars/:carId/generate", async (req, res) => {
 
   try {
     // Generate car + garage as one image via Flux img2img
-    const resultUrl = await processCarPhoto(firstPhoto, car.make, car.model, car.color ?? "");
+    const resultUrl = await processCarPhoto(firstPhoto, car.make, car.model, car.color ?? "", attempts + 1);
 
     // Save result
     const updated = await db.update(carsTable).set({

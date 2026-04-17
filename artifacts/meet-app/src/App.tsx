@@ -57,8 +57,14 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     }
   }, [isReady, isLoading, user, error, location, setLocation]);
 
-  // If onboarding done locally — no need to wait for API, show content immediately
-  if (localDone) return <>{children}</>;
+  // If onboarding done locally — redirect root to garage, then show content
+  if (localDone) {
+    if (location === "/" || location === "/onboarding") {
+      setLocation("/garage");
+      return null;
+    }
+    return <>{children}</>;
+  }
   if (!isReady || isLoading) return <Splash />;
 
   return <>{children}</>;

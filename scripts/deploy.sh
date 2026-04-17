@@ -4,7 +4,7 @@ set -e
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 DOMAIN="auto-meet.ru"
 APP_DIR="/var/www/carmeet"
-REPO_URL="$(git config --get remote.origin.url 2>/dev/null || echo '')"
+REPO_URL="https://github.com/POOFFINGG/carmeet"
 
 DB_NAME="carmeet"
 DB_USER="carmeet"
@@ -47,12 +47,8 @@ sudo -u postgres psql -tc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'" |
 echo "==> Setting up app directory..."
 mkdir -p "$APP_DIR"
 
-if [ -n "$REPO_URL" ] && [ ! -d "$APP_DIR/.git" ]; then
+if [ ! -d "$APP_DIR/.git" ]; then
   git clone "$REPO_URL" "$APP_DIR"
-else
-  echo "  Copy project files manually to $APP_DIR or use git clone"
-  echo "  Then re-run this script from $APP_DIR"
-  exit 0
 fi
 
 cd "$APP_DIR"

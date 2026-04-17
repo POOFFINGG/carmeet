@@ -60,6 +60,8 @@ if [ ! -f "$APP_DIR/artifacts/api-server/.env" ]; then
 DATABASE_URL=postgresql://$DB_USER:$DB_PASS@localhost:5432/$DB_NAME
 PORT=3000
 FAL_KEY=YOUR_FAL_KEY_HERE
+BOT_TOKEN=YOUR_BOT_TOKEN_HERE
+MINI_APP_URL=https://$DOMAIN
 ENV
   echo "  !! Edit $APP_DIR/artifacts/api-server/.env and set FAL_KEY, then re-run update.sh"
 fi
@@ -160,4 +162,8 @@ echo "  Site:    https://$DOMAIN"
 echo "  API:     http://127.0.0.1:3000"
 echo "  Logs:    journalctl -u carmeet-api -f"
 echo ""
-echo "  Next: edit .env and set FAL_KEY, then run: systemctl restart carmeet-api"
+echo "  Next steps:"
+echo "  1. Edit .env: nano $APP_DIR/artifacts/api-server/.env"
+echo "     Set FAL_KEY and BOT_TOKEN"
+echo "  2. Restart: systemctl restart carmeet-api"
+echo "  3. Set webhook: curl -s \"https://api.telegram.org/bot\$BOT_TOKEN/setWebhook?url=https://$DOMAIN/bot\""

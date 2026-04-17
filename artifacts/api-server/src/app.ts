@@ -4,6 +4,7 @@ import pinoHttp from "pino-http";
 import path from "path";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { createBot, webhookCallback } from "./bot";
 
 const app: Express = express();
 
@@ -37,5 +38,12 @@ app.use(
 );
 
 app.use("/api", router);
+
+// Telegram bot webhook
+const bot = createBot();
+if (bot) {
+  app.use("/bot", webhookCallback(bot, "express"));
+  logger.info("Bot webhook registered at /bot");
+}
 
 export default app;

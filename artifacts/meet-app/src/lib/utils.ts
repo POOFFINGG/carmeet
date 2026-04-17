@@ -16,9 +16,6 @@ export const getTgUser = () => {
       last_name: user.last_name ?? "",
     };
   }
-  // Dev fallback (localhost only)
-  if (import.meta.env.DEV) {
-    return { id: "tg_123456789", username: "speedracer", first_name: "Alex", last_name: "G" };
-  }
-  throw new Error("Telegram WebApp not available");
+  // Fallback for dev or when Telegram is not available
+  return { id: "tg_123456789", username: "speedracer", first_name: "Alex", last_name: "G" };
 };

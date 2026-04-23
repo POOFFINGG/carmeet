@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useLocation } from "wouter";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useGetEvents } from "@workspace/api-client-react";
@@ -25,6 +26,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 type DateFilter = "all" | "today" | "week";
 
 export default function MapView() {
+  const [, setLocation] = useLocation();
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const [search, setSearch] = useState("");
@@ -62,6 +64,12 @@ export default function MapView() {
       mapInstanceRef.current = null;
     };
   }, []);
+
+  // Register global navigation handler for Leaflet popup buttons
+  useEffect(() => {
+    (window as any).__mapNavigate = (id: number) => setLocation(`/events/${id}`);
+    return () => { delete (window as any).__mapNavigate; };
+  }, [setLocation]);
 
   useEffect(() => {
     if (!mapInstanceRef.current || !events) return;
@@ -124,6 +132,12 @@ export default function MapView() {
             </div>
             <div style="font-size:11px;color:#666">📍 ${ev.location}</div>
             <div style="font-size:11px;color:${color};font-weight:700;margin-top:6px">👥 ${ev.applicationsCount} участников</div>
+            <button onclick="window.__mapNavigate(${ev.id})"
+              style="margin-top:10px;width:100%;padding:8px 0;background:#e53935;color:white;
+                border:none;border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;
+                font-family:'Geologica',sans-serif;letter-spacing:0.02em">
+              Подробнее →
+            </button>
           </div>
         `, { maxWidth: 260 });
     });

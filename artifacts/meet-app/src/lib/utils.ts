@@ -14,8 +14,8 @@ export const getTgUser = () => {
       username: user.username ?? `user${user.id}`,
       first_name: user.first_name ?? "",
       last_name: user.last_name ?? "",
+      photo_url: user.photo_url ?? null,
     };
   }
-  // Fallback for dev or when Telegram is not available
-  return { id: "tg_123456789", username: "speedracer", first_name: "Alex", last_name: "G" };
+  return { id: "tg_123456789", username: "speedracer", first_name: "Alex", last_name: "G", photo_url: null };
 };

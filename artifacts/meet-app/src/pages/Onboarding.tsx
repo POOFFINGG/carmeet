@@ -42,9 +42,9 @@ type OnboardingData = z.infer<typeof onboardingSchema>;
 export default function Onboarding() {
   const [, setLocation] = useLocation();
   const [step, setStep] = useState(1);
-  const [avatarDataUrl, setAvatarDataUrl] = useState<string | null>(null);
-  const avatarInputRef = useRef<HTMLInputElement>(null);
   const tgUser = getTgUser();
+  const [avatarDataUrl, setAvatarDataUrl] = useState<string | null>(tgUser.photo_url ?? null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const { mutateAsync: completeOnboarding, isPending: isSavingProfile } = useCompleteOnboarding();
   const { mutateAsync: addCar, isPending: isAddingCar } = useAddCar();

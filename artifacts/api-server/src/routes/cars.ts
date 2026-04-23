@@ -6,7 +6,7 @@ import { processCarPhoto } from "../services/garage-render";
 
 const router: IRouter = Router();
 
-const MAX_AI_ATTEMPTS = Infinity;
+const MAX_AI_ATTEMPTS = 3;
 
 async function getUserFromRequest(req: any): Promise<number | null> {
   const telegramId = req.headers["x-telegram-id"] as string;

@@ -18,7 +18,7 @@ const SILHOUETTE_COLORS = [
   { hex: "#6A1B9A", label: "Фиолетовый" },
 ];
 
-const MAX_ATTEMPTS = 10;
+const MAX_ATTEMPTS = 3;
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 type Stage = "edit" | "photos" | "generating" | "result" | "silhouette";

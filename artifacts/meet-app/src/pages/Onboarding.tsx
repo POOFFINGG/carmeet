@@ -180,7 +180,7 @@ export default function Onboarding() {
                 </div>
               </div>
 
-              <Button size="lg" className="w-full mt-auto mb-6" onClick={nextStep} disabled={!watch("displayName") || watch("displayName").length < 2}>
+              <Button size="lg" className="w-full mt-10 mb-6" onClick={nextStep} disabled={!watch("displayName") || watch("displayName").length < 2}>
                 Далее <ChevronRight className="ml-2 w-5 h-5" />
               </Button>
             </motion.div>
@@ -221,7 +221,7 @@ export default function Onboarding() {
                 />
               </div>
 
-              <div className="flex gap-4 mt-auto mb-6">
+              <div className="flex gap-4 mt-10 mb-6">
                 <Button variant="outline" size="lg" onClick={prevStep} className="flex-1">Назад</Button>
                 <Button size="lg" onClick={nextStep} className="flex-[2]">
                   Далее <ChevronRight className="ml-2 w-5 h-5" />
@@ -307,7 +307,7 @@ export default function Onboarding() {
                 </>
               )}
 
-              <div className="flex gap-4 mt-auto mb-6">
+              <div className="flex gap-4 mt-10 mb-6">
                 <Button variant="outline" size="lg" onClick={prevStep} className="flex-1">Назад</Button>
                 <Button size="lg" onClick={nextStep} className="flex-[2]">
                   Далее <ChevronRight className="ml-2 w-5 h-5" />
@@ -360,7 +360,7 @@ export default function Onboarding() {
                 )}
               </div>
 
-              <div className="flex gap-4 mt-auto mb-6">
+              <div className="flex gap-4 mt-10 mb-6">
                 <Button variant="outline" size="lg" onClick={prevStep} className="flex-1" disabled={isPending}>Назад</Button>
                 <Button
                   size="lg"
@@ -431,7 +431,7 @@ export default function Onboarding() {
                 )}
               </div>
 
-              <Button size="lg" className="w-full mt-4 mb-6" onClick={() => setLocation("/garage")}>
+              <Button size="lg" className="w-full mt-10 mb-6" onClick={() => setLocation("/garage")}>
                 Начать пользоваться <ChevronRight className="ml-2 w-5 h-5" />
               </Button>
             </motion.div>

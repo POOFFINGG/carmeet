@@ -3,6 +3,16 @@ import { db } from "@workspace/db";
 import { eventsTable, usersTable, applicationsTable, notificationsTable } from "@workspace/db/schema";
 import { eq, and, ilike, inArray, sql } from "drizzle-orm";
 
+async function geocode(location: string): Promise<{ lat: number; lng: number } | null> {
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1`;
+    const res = await fetch(url, { headers: { "User-Agent": "carmeet-app/1.0" } });
+    const data = await res.json() as any[];
+    if (data[0]) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+  } catch {}
+  return null;
+}
+
 const router: IRouter = Router();
 
 async function getUserFromRequest(req: any): Promise<number | null> {
@@ -154,6 +164,14 @@ router.post("/events", async (req, res) => {
     return;
   }
 
+  // Geocode location if no coords provided
+  let finalLat = lat || null;
+  let finalLng = lng || null;
+  if (!finalLat && location) {
+    const coords = await geocode(location);
+    if (coords) { finalLat = coords.lat; finalLng = coords.lng; }
+  }
+
   const [event] = await db.insert(eventsTable).values({
     title,
     description: description || null,
@@ -163,8 +181,8 @@ router.post("/events", async (req, res) => {
     date,
     endDate: endDate || null,
     location,
-    lat: lat || null,
-    lng: lng || null,
+    lat: finalLat,
+    lng: finalLng,
     maxParticipants: maxParticipants || null,
     isPrivate: isPrivate ?? false,
     autoAccept: autoAccept ?? false,

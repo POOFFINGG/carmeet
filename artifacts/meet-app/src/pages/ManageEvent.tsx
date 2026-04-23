@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useRoute, useLocation } from "wouter";
 import { Layout } from "@/components/Layout";
-import { useGetEventApplications, useUpdateApplication, useGetEvent, useCancelApplication, useDeleteEvent } from "@workspace/api-client-react";
-import { ChevronLeft, Users, Eye, Car, Clock, UserCheck, UserX, Bell, UserPlus, AlertTriangle, Send, X } from "lucide-react";
+import { useGetEventApplications, useUpdateApplication, useGetEvent, useCancelApplication, useDeleteEvent, useUpdateEvent } from "@workspace/api-client-react";
+import { ChevronLeft, Users, Eye, Car, Clock, UserCheck, UserX, Bell, UserPlus, AlertTriangle, Send, X, Pencil, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { getTgUser } from "@/lib/utils";
@@ -27,12 +27,16 @@ export default function ManageEvent() {
   const [inviteUsername, setInviteUsername] = useState("");
   const [isInviting, setIsInviting] = useState(false);
   const [inviteResult, setInviteResult] = useState<string | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState<Record<string, any>>({});
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   const { data: event } = useGetEvent(eventId, { query: { enabled: !!eventId } });
   const { data: applications, isLoading } = useGetEventApplications(eventId, { query: { enabled: !!eventId } });
   const { mutateAsync: updateApp } = useUpdateApplication();
   const { mutateAsync: cancelApp } = useCancelApplication();
   const { mutateAsync: deleteEvent, isPending: isCancelling } = useDeleteEvent();
+  const { mutateAsync: updateEvent } = useUpdateEvent();
 
   async function approve(appId: number) {
     setProcessing(appId);
@@ -142,6 +146,12 @@ export default function ManageEvent() {
             <h1 className="text-lg font-black text-white truncate">{event?.title || "Управление"}</h1>
             <p className="text-white/35 text-xs">{applications?.length || 0} заявок всего</p>
           </div>
+          <button
+            onClick={() => { setEditForm({ title: event?.title, description: event?.description, location: event?.location, date: event?.date, endDate: event?.endDate, priceParticipants: event?.priceParticipants, priceViewers: event?.priceViewers, organizerLink: event?.organizerLink }); setShowEditModal(true); }}
+            className="w-9 h-9 flex items-center justify-center rounded-full bg-white/6 active:scale-90 transition-all"
+          >
+            <Pencil className="w-4 h-4 text-white/70" />
+          </button>
         </div>
 
         {/* Action buttons row */}
@@ -405,6 +415,62 @@ export default function ManageEvent() {
             {inviteResult && inviteResult !== "ok" && (
               <p className="text-red-400 text-xs font-bold px-2">{inviteResult}</p>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Edit event modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowEditModal(false)}>
+          <div className="w-full max-w-lg bg-[#1a1a1a] rounded-t-3xl p-6 pb-10 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-black text-white">Редактировать событие</h2>
+              <button onClick={() => setShowEditModal(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/8 text-white/50"><X className="w-4 h-4" /></button>
+            </div>
+            <div className="flex flex-col gap-3">
+              {([
+                { key: "title", label: "Название", type: "text" },
+                { key: "date", label: "Дата начала", type: "date" },
+                { key: "endDate", label: "Дата окончания", type: "date" },
+                { key: "location", label: "Место", type: "text" },
+                { key: "priceParticipants", label: "Цена для участников (₽)", type: "number" },
+                { key: "priceViewers", label: "Цена для зрителей (₽)", type: "number" },
+                { key: "organizerLink", label: "Ссылка организатора", type: "text" },
+              ] as const).map(({ key, label, type }) => (
+                <div key={key}>
+                  <label className="text-white/50 text-xs mb-1 block">{label}</label>
+                  <input
+                    type={type}
+                    value={editForm[key] ?? ""}
+                    onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))}
+                    className="w-full bg-white/6 border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-primary/50"
+                  />
+                </div>
+              ))}
+              <div>
+                <label className="text-white/50 text-xs mb-1 block">Описание</label>
+                <textarea
+                  rows={3}
+                  value={editForm.description ?? ""}
+                  onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
+                  className="w-full bg-white/6 border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-primary/50 resize-none"
+                />
+              </div>
+              <button
+                disabled={isSavingEdit}
+                onClick={async () => {
+                  setIsSavingEdit(true);
+                  try {
+                    await updateEvent({ eventId, data: editForm });
+                    await queryClient.invalidateQueries({ queryKey: [`/api/events/${eventId}`] });
+                    setShowEditModal(false);
+                  } finally { setIsSavingEdit(false); }
+                }}
+                className="w-full py-3.5 bg-primary rounded-2xl font-black text-white text-sm active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2 mt-2"
+              >
+                <Check className="w-4 h-4" /> {isSavingEdit ? "Сохраняем..." : "Сохранить"}
+              </button>
+            </div>
           </div>
         </div>
       )}

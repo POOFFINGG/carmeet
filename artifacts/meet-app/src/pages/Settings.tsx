@@ -345,7 +345,7 @@ export default function Settings() {
           <p className="text-white/30 text-xs font-bold uppercase tracking-widest mb-2 px-1">Поддержка</p>
           <div className="bg-white/4 rounded-2xl border border-white/6 overflow-hidden">
             <a
-              href="https://t.me/meet_support"
+              href="https://t.me/automeet1bot"
               target="_blank"
               rel="noopener noreferrer"
               className="w-full flex items-center justify-between px-4 py-4 active:bg-white/4 transition-all"

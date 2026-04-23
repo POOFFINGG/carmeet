@@ -22,7 +22,7 @@ export default function Notifications() {
         {/* Telegram bot CTA */}
         <div className="px-5 mb-4">
           <a
-            href="https://t.me/AutoMeetBot"
+            href="https://t.me/automeet1bot"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-4 bg-[#0088cc]/10 border border-[#0088cc]/25 rounded-2xl p-4 active:scale-[0.98] transition-all"

@@ -31,40 +31,34 @@ const queryClient = new QueryClient({
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
-  const localDone = localStorage.getItem("onboarding_done") === "1";
-  const { data: user, isLoading, error } = useGetMe({ query: { enabled: !localDone } });
+  const [localDone, setLocalDone] = useState(localStorage.getItem("onboarding_done") === "1");
+  // Always verify user exists — even when localDone (catches deleted/truncated users)
+  const { data: user, isLoading, error } = useGetMe({ query: { retry: false } });
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    // Artificial delay to show beautiful splash (skip if already onboarded locally)
     const delay = localDone ? 0 : 1500;
     const t = setTimeout(() => setIsReady(true), delay);
     return () => clearTimeout(t);
   }, []);
 
   useEffect(() => {
-    if (!isReady) return;
-    if (localDone || isLoading) return;
+    if (!isReady || isLoading) return;
 
     if (user?.onboardingComplete) {
       if (location === "/" || location === "/onboarding") {
         setLocation("/garage");
       }
-    } else if (error || !user) {
+    } else {
+      // User not found or not complete — clear local flag, go to onboarding
+      localStorage.removeItem("onboarding_done");
+      setLocalDone(false);
       if (location !== "/onboarding") {
         setLocation("/onboarding");
       }
     }
   }, [isReady, isLoading, user, error, location, setLocation]);
 
-  // If onboarding done locally — redirect root to garage, then show content
-  if (localDone) {
-    if (location === "/" || location === "/onboarding") {
-      setLocation("/garage");
-      return null;
-    }
-    return <>{children}</>;
-  }
   if (!isReady || isLoading) return <Splash />;
 
   return <>{children}</>;

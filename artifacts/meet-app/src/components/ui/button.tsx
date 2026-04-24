@@ -44,4 +44,9 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 );
 Button.displayName = "Button";
 
+// Compatibility shim for shadcn components that import buttonVariants
+export function buttonVariants({ variant = "default", size = "default", className = "" }: { variant?: string; size?: string; className?: string } = {}): string {
+  return cn("inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-semibold transition-all", className);
+}
+
 export { Button };

@@ -6,11 +6,13 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type ApplicationStatus =
-  (typeof ApplicationStatus)[keyof typeof ApplicationStatus];
+export type CarAiStatus = (typeof CarAiStatus)[keyof typeof CarAiStatus] | null;
 
-export const ApplicationStatus = {
+export const CarAiStatus = {
   pending: "pending",
+  processing: "processing",
+  result_ready: "result_ready",
   approved: "approved",
+  pending_moderation: "pending_moderation",
   rejected: "rejected",
 } as const;

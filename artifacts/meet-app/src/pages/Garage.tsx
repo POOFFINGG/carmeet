@@ -30,7 +30,7 @@ export default function Garage() {
 
   const hasAiImage = (activeCar?.aiStatus === "approved" || activeCar?.aiStatus === "pending_moderation" || activeCar?.aiStatus === "result_ready") && activeCar?.aiStyledImageUrl;
   const carDisplayUrl = hasAiImage
-    ? activeCar.aiStyledImageUrl
+    ? (activeCar.aiStyledImageUrl ?? undefined)
     : `${import.meta.env.BASE_URL}new-angle-Photoroom.png`;
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {

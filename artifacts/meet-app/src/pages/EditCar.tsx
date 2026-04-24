@@ -82,7 +82,9 @@ export default function EditCar() {
       headers: { "Content-Type": "application/json", "x-telegram-id": tgUser.id },
       body: body ? JSON.stringify(body) : undefined,
     });
-    return res.json();
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
+    return data;
   }
 
   async function saveCar() {

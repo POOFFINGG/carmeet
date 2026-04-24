@@ -1,0 +1,49 @@
+{
+  "phase": "bug-fixing",
+  "timestamp": "2026-04-24T00:00:00.000Z",
+  "files_modified": [
+    {
+      "path": "artifacts/api-server/src/routes/events.ts",
+      "backup": ".tmp/current/backups/.rollback/artifacts-api-server-src-routes-events.ts.backup",
+      "timestamp": "2026-04-24T00:01:00.000Z",
+      "bug_id": "CRITICAL-1",
+      "reason": "Remove local getUserFromRequest and replace with imported getUserIdFromRequest from lib/auth"
+    },
+    {
+      "path": "artifacts/api-server/src/routes/applications.ts",
+      "backup": ".tmp/current/backups/.rollback/artifacts-api-server-src-routes-applications.ts.backup",
+      "timestamp": "2026-04-24T00:01:00.000Z",
+      "bug_id": "CRITICAL-1",
+      "reason": "Remove local getUserFromRequest and replace with imported getUserIdFromRequest from lib/auth"
+    },
+    {
+      "path": "artifacts/api-server/src/routes/cars.ts",
+      "backup": ".tmp/current/backups/.rollback/artifacts-api-server-src-routes-cars.ts.backup",
+      "timestamp": "2026-04-24T00:01:00.000Z",
+      "bug_id": "CRITICAL-1",
+      "reason": "Remove local getUserFromRequest and replace with imported getUserIdFromRequest from lib/auth"
+    },
+    {
+      "path": "artifacts/api-server/src/routes/notifications.ts",
+      "backup": ".tmp/current/backups/.rollback/artifacts-api-server-src-routes-notifications.ts.backup",
+      "timestamp": "2026-04-24T00:01:00.000Z",
+      "bug_id": "CRITICAL-1",
+      "reason": "Remove local getUserFromRequest and replace with imported getUserIdFromRequest from lib/auth"
+    },
+    {
+      "path": "artifacts/api-server/src/services/garage-render.ts",
+      "backup": ".tmp/current/backups/.rollback/artifacts-api-server-src-services-garage-render.ts.backup",
+      "timestamp": "2026-04-24T00:02:00.000Z",
+      "bug_id": "CRITICAL-2",
+      "reason": "Fix infinite loop: capture deadline before loop instead of re-evaluating Date.now() + 300_000 each iteration"
+    },
+    {
+      "path": "artifacts/meet-app/src/pages/Map.tsx",
+      "backup": ".tmp/current/backups/.rollback/artifacts-meet-app-src-pages-Map.tsx.backup",
+      "timestamp": "2026-04-24T00:03:00.000Z",
+      "bug_id": "CRITICAL-3",
+      "reason": "Add escHtml helper and escape ev.title and ev.location in Leaflet popup HTML to prevent XSS"
+    }
+  ],
+  "files_created": []
+}

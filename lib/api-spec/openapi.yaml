@@ -465,6 +465,10 @@ components:
             type: string
         onboardingComplete:
           type: boolean
+        notifWeek:
+          type: boolean
+        notifDay:
+          type: boolean
         createdAt:
           type: string
       required:
@@ -475,6 +479,8 @@ components:
         - role
         - onboardingComplete
         - interestCategories
+        - notifWeek
+        - notifDay
         - createdAt
 
     OnboardingRequest:
@@ -640,6 +646,9 @@ components:
         coverImageUrl:
           type: string
           nullable: true
+        organizerLink:
+          type: string
+          nullable: true
       required:
         - title
         - category
@@ -749,6 +758,16 @@ components:
         aiStyledImageUrl:
           type: string
           nullable: true
+        aiStatus:
+          type: string
+          nullable: true
+          enum: [pending, processing, result_ready, approved, pending_moderation, rejected]
+        silhouetteColor:
+          type: string
+          nullable: true
+        aiGenerationAttempts:
+          type: integer
+          nullable: true
         categories:
           type: array
           items:
@@ -841,7 +860,7 @@ components:
         eventId:
           type: integer
           nullable: true
-        isRead:
+        read:
           type: boolean
         createdAt:
           type: string
@@ -851,5 +870,5 @@ components:
         - type
         - title
         - message
-        - isRead
+        - read
         - createdAt

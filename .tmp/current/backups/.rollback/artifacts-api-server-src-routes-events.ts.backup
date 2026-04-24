@@ -3,7 +3,6 @@ import { db } from "@workspace/db";
 import { eventsTable, usersTable, applicationsTable, notificationsTable } from "@workspace/db/schema";
 import { eq, and, ilike, inArray, sql, ne } from "drizzle-orm";
 import { getBot } from "../bot";
-import { getUserIdFromRequest } from "../lib/auth";
 
 async function geocode(location: string): Promise<{ lat: number; lng: number } | null> {
   try {
@@ -16,6 +15,13 @@ async function geocode(location: string): Promise<{ lat: number; lng: number } |
 }
 
 const router: IRouter = Router();
+
+async function getUserFromRequest(req: any): Promise<number | null> {
+  const telegramId = req.headers["x-telegram-id"] as string;
+  if (!telegramId) return null;
+  const users = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.telegramId, telegramId)).limit(1);
+  return users.length > 0 ? users[0].id : null;
+}
 
 const EVENT_SELECT = {
   id: eventsTable.id,
@@ -109,7 +115,7 @@ router.get("/events", async (req, res) => {
 
 // GET /api/users/me/events — organizer's own events
 router.get("/users/me/events", async (req, res) => {
-  const userId = await getUserIdFromRequest(req);
+  const userId = await getUserFromRequest(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   const events = await db
@@ -149,7 +155,7 @@ router.get("/events/:eventId", async (req, res) => {
 
 // POST /api/events
 router.post("/events", async (req, res) => {
-  const userId = await getUserIdFromRequest(req);
+  const userId = await getUserFromRequest(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   const { title, description, category, subcategories, date, endDate, location, lat, lng, maxParticipants, isPrivate, autoAccept, priceParticipants, priceViewers, organizerLink, coverImageUrl } = req.body;
@@ -237,7 +243,7 @@ router.post("/events", async (req, res) => {
 
 // PUT /api/events/:eventId
 router.put("/events/:eventId", async (req, res) => {
-  const userId = await getUserIdFromRequest(req);
+  const userId = await getUserFromRequest(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   const eventId = parseInt(req.params.eventId);
@@ -290,7 +296,7 @@ router.put("/events/:eventId", async (req, res) => {
 
 // DELETE /api/events/:eventId — soft delete (cancelled)
 router.delete("/events/:eventId", async (req, res) => {
-  const userId = await getUserIdFromRequest(req);
+  const userId = await getUserFromRequest(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   const eventId = parseInt(req.params.eventId);
@@ -341,7 +347,7 @@ router.delete("/events/:eventId", async (req, res) => {
 
 // POST /api/events/:eventId/notify — send notification to all approved participants
 router.post("/events/:eventId/notify", async (req, res) => {
-  const userId = await getUserIdFromRequest(req);
+  const userId = await getUserFromRequest(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   const eventId = parseInt(req.params.eventId);
@@ -377,7 +383,7 @@ router.post("/events/:eventId/notify", async (req, res) => {
 
 // POST /api/events/:eventId/invite — invite user by username
 router.post("/events/:eventId/invite", async (req, res) => {
-  const userId = await getUserIdFromRequest(req);
+  const userId = await getUserFromRequest(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   const eventId = parseInt(req.params.eventId);

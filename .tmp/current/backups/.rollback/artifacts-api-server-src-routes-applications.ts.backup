@@ -3,9 +3,15 @@ import { db } from "@workspace/db";
 import { applicationsTable, usersTable, eventsTable, carsTable, notificationsTable } from "@workspace/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { getBot } from "../bot";
-import { getUserIdFromRequest } from "../lib/auth";
 
 const router: IRouter = Router();
+
+async function getUserFromRequest(req: any): Promise<number | null> {
+  const telegramId = req.headers["x-telegram-id"] as string;
+  if (!telegramId) return null;
+  const users = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.telegramId, telegramId)).limit(1);
+  return users.length > 0 ? users[0].id : null;
+}
 
 // Single JOIN query — no N+1
 async function getApplicationsWithDetails(where: Parameters<typeof db.select>[0] extends never ? never : any) {
@@ -62,7 +68,7 @@ async function createNotification(
 
 // GET /api/events/:eventId/applications
 router.get("/events/:eventId/applications", async (req, res) => {
-  const userId = await getUserIdFromRequest(req);
+  const userId = await getUserFromRequest(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   const eventId = parseInt(req.params.eventId);
@@ -74,7 +80,7 @@ router.get("/events/:eventId/applications", async (req, res) => {
 
 // POST /api/events/:eventId/applications — apply or update attendance status
 router.post("/events/:eventId/applications", async (req, res) => {
-  const userId = await getUserIdFromRequest(req);
+  const userId = await getUserFromRequest(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   const eventId = parseInt(req.params.eventId);
@@ -186,7 +192,7 @@ router.post("/events/:eventId/applications", async (req, res) => {
 
 // PUT /api/events/:eventId/applications/:applicationId — organizer approve/reject
 router.put("/events/:eventId/applications/:applicationId", async (req, res) => {
-  const userId = await getUserIdFromRequest(req);
+  const userId = await getUserFromRequest(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   const eventId = parseInt(req.params.eventId);
@@ -208,15 +214,7 @@ router.put("/events/:eventId/applications/:applicationId", async (req, res) => {
     updateData.status = status;
   }
   if (attendanceStatus) {
-    // Fetch application to verify caller owns it before updating attendance
-    const [app] = await db
-      .select({ userId: applicationsTable.userId })
-      .from(applicationsTable)
-      .where(eq(applicationsTable.id, applicationId))
-      .limit(1);
-    if (app && app.userId === userId) {
-      updateData.attendanceStatus = attendanceStatus;
-    }
+    updateData.attendanceStatus = attendanceStatus;
   }
 
   if (Object.keys(updateData).length === 0) {
@@ -266,7 +264,7 @@ router.put("/events/:eventId/applications/:applicationId", async (req, res) => {
 
 // DELETE /api/events/:eventId/applications/:applicationId
 router.delete("/events/:eventId/applications/:applicationId", async (req, res) => {
-  const userId = await getUserIdFromRequest(req);
+  const userId = await getUserFromRequest(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   const eventId = parseInt(req.params.eventId);
@@ -294,7 +292,7 @@ router.delete("/events/:eventId/applications/:applicationId", async (req, res) =
 
 // GET /api/users/me/applications
 router.get("/users/me/applications", async (req, res) => {
-  const userId = await getUserIdFromRequest(req);
+  const userId = await getUserFromRequest(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   const result = await getApplicationsWithDetails(eq(applicationsTable.userId, userId));

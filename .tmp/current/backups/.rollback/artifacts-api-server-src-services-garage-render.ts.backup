@@ -22,7 +22,7 @@ function httpsRequest(
   return new Promise((resolve, reject) => {
     const opts: https.RequestOptions = {
       hostname, path: urlPath, method,
-      timeout: 120_000, agent: false,
+      timeout: 120_000, agent: false, rejectUnauthorized: false,
       ...(hostname.endsWith("fal.media") ? { minVersion: "TLSv1.3" as any } : {}),
       headers: { ...headers, ...(body ? { "Content-Length": body.byteLength } : {}) },
     };
@@ -45,7 +45,7 @@ function httpsGetBufferOnce(url: string): Promise<Buffer> {
       const p = new URL(u);
       const req = https.get({
         hostname: p.hostname, path: p.pathname + p.search,
-        timeout: 30_000, agent: false,
+        timeout: 30_000, agent: false, rejectUnauthorized: false,
         ...(p.hostname.endsWith("fal.media") ? { minVersion: "TLSv1.3" as any } : {}),
       } as https.RequestOptions, (res) => {
         if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
@@ -146,8 +146,7 @@ async function falRun(endpoint: string, payload: object): Promise<any> {
   const responseUrl = new URL(sub.response_url);
   console.log(`[${endpoint}] id:`, sub.request_id);
 
-  const deadline = Date.now() + 300_000;
-  for (let n = 0; Date.now() < deadline; n++) {
+  for (let n = 0; Date.now() < Date.now() + 300_000; n++) {
     await sleep(3000);
     let p: any;
     try {

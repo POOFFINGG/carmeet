@@ -3,11 +3,17 @@ import { db } from "@workspace/db";
 import { carsTable, usersTable } from "@workspace/db/schema";
 import { eq, and } from "drizzle-orm";
 import { processCarPhoto } from "../services/garage-render";
-import { getUserIdFromRequest } from "../lib/auth";
 
 const router: IRouter = Router();
 
 const MAX_AI_ATTEMPTS = 3;
+
+async function getUserFromRequest(req: any): Promise<number | null> {
+  const telegramId = req.headers["x-telegram-id"] as string;
+  if (!telegramId) return null;
+  const users = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.telegramId, telegramId)).limit(1);
+  return users.length > 0 ? users[0].id : null;
+}
 
 function formatCar(car: any) {
   return {
@@ -31,7 +37,7 @@ function formatCar(car: any) {
 
 // GET /api/cars — get my cars
 router.get("/cars", async (req, res) => {
-  const userId = await getUserIdFromRequest(req);
+  const userId = await getUserFromRequest(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
   const cars = await db.select().from(carsTable).where(eq(carsTable.userId, userId));
   res.json(cars.map(formatCar));
@@ -39,7 +45,7 @@ router.get("/cars", async (req, res) => {
 
 // POST /api/cars — create car
 router.post("/cars", async (req, res) => {
-  const userId = await getUserIdFromRequest(req);
+  const userId = await getUserFromRequest(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   const { make, model, year, color, silhouetteColor, photoUrl, categories, isPrimary } = req.body;
@@ -67,7 +73,7 @@ router.post("/cars", async (req, res) => {
 
 // PUT /api/cars/:carId — update car
 router.put("/cars/:carId", async (req, res) => {
-  const userId = await getUserIdFromRequest(req);
+  const userId = await getUserFromRequest(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   const carId = parseInt(req.params.carId);
@@ -98,7 +104,7 @@ router.put("/cars/:carId", async (req, res) => {
 
 // POST /api/cars/:carId/generate — trigger AI generation (real pipeline)
 router.post("/cars/:carId/generate", async (req, res) => {
-  const userId = await getUserIdFromRequest(req);
+  const userId = await getUserFromRequest(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   const carId = parseInt(req.params.carId);
@@ -161,7 +167,7 @@ router.post("/cars/:carId/generate", async (req, res) => {
 
 // POST /api/cars/:carId/ai-result — store the AI result (called by client after mock generation)
 router.post("/cars/:carId/ai-result", async (req, res) => {
-  const userId = await getUserIdFromRequest(req);
+  const userId = await getUserFromRequest(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   const carId = parseInt(req.params.carId);
@@ -179,7 +185,7 @@ router.post("/cars/:carId/ai-result", async (req, res) => {
 
 // POST /api/cars/:carId/accept — user accepts generated image → sends to moderation
 router.post("/cars/:carId/accept", async (req, res) => {
-  const userId = await getUserIdFromRequest(req);
+  const userId = await getUserFromRequest(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   const carId = parseInt(req.params.carId);
@@ -195,7 +201,7 @@ router.post("/cars/:carId/accept", async (req, res) => {
 
 // POST /api/cars/:carId/use-silhouette — discard AI, use silhouette
 router.post("/cars/:carId/use-silhouette", async (req, res) => {
-  const userId = await getUserIdFromRequest(req);
+  const userId = await getUserFromRequest(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   const carId = parseInt(req.params.carId);
@@ -214,7 +220,7 @@ router.post("/cars/:carId/use-silhouette", async (req, res) => {
 
 // DELETE /api/cars/:carId
 router.delete("/cars/:carId", async (req, res) => {
-  const userId = await getUserIdFromRequest(req);
+  const userId = await getUserFromRequest(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   const carId = parseInt(req.params.carId);

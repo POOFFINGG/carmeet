@@ -108,6 +108,11 @@ router.patch("/users/me", async (req, res) => {
 
   const { role, interestCategories, organizationName, contactLink, adminContact, avatarUrl, displayName, viewerSilhouette, notifWeek, notifDay } = req.body;
 
+  if (avatarUrl && typeof avatarUrl === "string" && avatarUrl.length > 5 * 1024 * 1024) {
+    res.status(413).json({ error: "Avatar image too large (max 5MB)" });
+    return;
+  }
+
   const updateData: Record<string, unknown> = { updatedAt: new Date() };
   if (role !== undefined) updateData.role = role;
   if (interestCategories !== undefined) updateData.interestCategories = interestCategories;

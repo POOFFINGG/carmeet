@@ -2,9 +2,15 @@ import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { notificationsTable, usersTable } from "@workspace/db/schema";
 import { eq, and, desc } from "drizzle-orm";
-import { getUserIdFromRequest } from "../lib/auth";
 
 const router: IRouter = Router();
+
+async function getUserFromRequest(req: any): Promise<number | null> {
+  const telegramId = req.headers["x-telegram-id"] as string;
+  if (!telegramId) return null;
+  const users = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.telegramId, telegramId)).limit(1);
+  return users.length > 0 ? users[0].id : null;
+}
 
 function formatNotification(n: any) {
   return {
@@ -21,7 +27,7 @@ function formatNotification(n: any) {
 
 // GET /api/users/me/notifications
 router.get("/users/me/notifications", async (req, res) => {
-  const userId = await getUserIdFromRequest(req);
+  const userId = await getUserFromRequest(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   const notifications = await db
@@ -36,7 +42,7 @@ router.get("/users/me/notifications", async (req, res) => {
 
 // PATCH /api/users/me/notifications/:id — mark single as read
 router.patch("/users/me/notifications/:id", async (req, res) => {
-  const userId = await getUserIdFromRequest(req);
+  const userId = await getUserFromRequest(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   const notifId = parseInt(req.params.id);
@@ -54,7 +60,7 @@ router.patch("/users/me/notifications/:id", async (req, res) => {
 
 // POST /api/users/me/notifications/read-all — mark all as read
 router.post("/users/me/notifications/read-all", async (req, res) => {
-  const userId = await getUserIdFromRequest(req);
+  const userId = await getUserFromRequest(req);
   if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   await db

@@ -11,6 +11,10 @@ const router: IRouter = Router();
 const ADMIN_USERNAME = process.env["ADMIN_USERNAME"] ?? "admin";
 const ADMIN_PASSWORD = process.env["ADMIN_PASSWORD"] ?? "meet2025";
 
+if (!process.env["ADMIN_USERNAME"] || !process.env["ADMIN_PASSWORD"] || !process.env["ADMIN_TOKEN_SECRET"]) {
+  console.warn("[SECURITY] Admin credentials are using insecure defaults. Set ADMIN_USERNAME, ADMIN_PASSWORD, and ADMIN_TOKEN_SECRET env vars before deploying to production.");
+}
+
 // ── Deterministic HMAC token — survives server restarts ──────────────────────
 // Token = HMAC-SHA256(username:password, secret). No memory store needed.
 function createToken(): string {

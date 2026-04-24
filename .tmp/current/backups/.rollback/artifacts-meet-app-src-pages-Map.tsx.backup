@@ -123,12 +123,7 @@ export default function MapView() {
         popupAnchor: [0, -36],
       });
 
-      // Escape user-supplied strings to prevent XSS in Leaflet popup HTML
-      function escHtml(s: string): string {
-        return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-      }
-
-      L.marker([ev.lat!, ev.lng!], { icon })
+      L.marker([ev.lat, ev.lng], { icon })
         .addTo(mapInstanceRef.current!)
         .bindPopup(`
           <div style="font-family:'Geologica',sans-serif;min-width:210px;padding:2px">
@@ -137,11 +132,11 @@ export default function MapView() {
               letter-spacing:0.08em;display:inline-block;margin-bottom:8px">
               ${CATEGORY_LABELS[ev.category] || ev.category}
             </div>
-            <div style="font-weight:800;font-size:14px;color:#111;margin-bottom:5px;line-height:1.2">${escHtml(ev.title)}</div>
+            <div style="font-weight:800;font-size:14px;color:#111;margin-bottom:5px;line-height:1.2">${ev.title}</div>
             <div style="font-size:11px;color:#666;margin-bottom:2px">
               📅 ${new Date(ev.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
             </div>
-            <div style="font-size:11px;color:#666">📍 ${escHtml(ev.location)}</div>
+            <div style="font-size:11px;color:#666">📍 ${ev.location}</div>
             <div style="font-size:11px;color:${color};font-weight:700;margin-top:6px">👥 ${ev.applicationsCount} участников</div>
             <button onclick="window.__mapNavigate(${ev.id})"
               style="margin-top:10px;width:100%;padding:8px 0;background:#e53935;color:white;

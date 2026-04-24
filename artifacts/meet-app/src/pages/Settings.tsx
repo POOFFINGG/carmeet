@@ -29,11 +29,21 @@ export default function Settings() {
   const { data: cars } = useGetMyCars({ query: { enabled: !!user && user.role !== "viewer", retry: false } });
 
   const [section, setSection] = useState<Section>(null);
-  const [selectedRole, setSelectedRole] = useState(user?.role ?? "viewer");
-  const [selectedCats, setSelectedCats] = useState<string[]>(user?.interestCategories ?? []);
+  const [selectedRole, setSelectedRole] = useState<"viewer" | "participant" | "organizer">("viewer");
+  const [selectedCats, setSelectedCats] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
-  const [notifWeek, setNotifWeek] = useState<boolean>(user?.notifWeek ?? true);
-  const [notifDay, setNotifDay] = useState<boolean>(user?.notifDay ?? true);
+  const [notifWeek, setNotifWeek] = useState<boolean>(true);
+  const [notifDay, setNotifDay] = useState<boolean>(true);
+
+  // Sync state from server once user data loads
+  const [hydrated, setHydrated] = useState(false);
+  if (user && !hydrated) {
+    setSelectedRole(user.role);
+    setSelectedCats(user.interestCategories ?? []);
+    setNotifWeek(user.notifWeek ?? true);
+    setNotifDay(user.notifDay ?? true);
+    setHydrated(true);
+  }
 
   const tgUser = getTgUser();
   const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -117,7 +127,7 @@ export default function Settings() {
             return (
               <button
                 key={role.id}
-                onClick={() => setSelectedRole(role.id)}
+                onClick={() => setSelectedRole(role.id as "viewer" | "participant" | "organizer")}
                 className={cn(
                   "w-full text-left rounded-2xl p-4 border transition-all active:scale-[0.98]",
                   isSelected

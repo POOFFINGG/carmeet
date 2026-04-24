@@ -461,7 +461,7 @@ export default function ManageEvent() {
                 onClick={async () => {
                   setIsSavingEdit(true);
                   try {
-                    await updateEvent({ eventId, data: editForm });
+                    await updateEvent({ eventId, data: editForm as any });
                     await queryClient.invalidateQueries({ queryKey: [`/api/events/${eventId}`] });
                     setShowEditModal(false);
                   } finally { setIsSavingEdit(false); }

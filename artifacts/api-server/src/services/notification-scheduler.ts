@@ -62,10 +62,16 @@ async function sendReminders(bot: Bot, daysAhead: number) {
   const telegramIdMap = new Map(filteredUsers.map(u => [u.id, u.telegramId]));
   const eventMap = new Map(events.map(e => [e.id, e]));
 
+  const today = new Date().toISOString().slice(0, 10);
+
   for (const app of apps) {
     const telegramId = telegramIdMap.get(app.userId);
     const event = eventMap.get(app.eventId);
     if (!telegramId || !event) continue;
+
+    const dedupKey = `${app.userId}:${app.eventId}:${daysAhead}:${today}`;
+    if (sentReminders.has(dedupKey)) continue;
+    sentReminders.add(dedupKey);
 
     const label = daysAhead === 7 ? `Через неделю` : `Завтра`;
     const text = `${label}: *${event.title}*\n📅 ${event.date}\n📍 ${event.location}`;
@@ -87,6 +93,19 @@ async function sendReminders(bot: Bot, daysAhead: number) {
   console.log(`Sent ${daysAhead}d reminders for ${apps.length} attendees across ${events.length} events`);
 }
 
+// In-memory dedup set: "userId:eventId:daysAhead:date" — prevents duplicate sends within same day
+const sentReminders = new Set<string>();
+
+// Clear dedup set at midnight UTC
+function scheduleMidnightReset() {
+  const now = new Date();
+  const msUntilMidnight = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1).getTime() - now.getTime();
+  setTimeout(() => {
+    sentReminders.clear();
+    scheduleMidnightReset();
+  }, msUntilMidnight);
+}
+
 export function startNotificationScheduler(bot: Bot) {
   // Check every hour
   const INTERVAL_MS = 60 * 60 * 1000;
@@ -100,6 +119,7 @@ export function startNotificationScheduler(bot: Bot) {
     }
   }
 
+  scheduleMidnightReset();
   tick(); // run on start
   setInterval(tick, INTERVAL_MS);
   console.log("Notification scheduler started (hourly)");

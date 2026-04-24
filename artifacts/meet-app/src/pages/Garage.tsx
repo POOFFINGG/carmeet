@@ -9,6 +9,13 @@ import hummerImg from "@assets/9003368582ac3463e0bbfc01325d2e7d_1775136075973.jp
 
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
+const SILHOUETTE_EMOJI: Record<string, string> = {
+  bicycle: "🚲",
+  scooter: "🛴",
+  skateboard: "🛹",
+  cart: "🛒",
+};
+
 
 export default function Garage() {
   const [, setLocation] = useLocation();
@@ -62,6 +69,18 @@ export default function Garage() {
       <div className="absolute inset-0 pointer-events-none"
         style={{ background: "linear-gradient(to bottom, rgba(13,13,13,0.6) 0%, transparent 30%, transparent 55%, rgba(13,13,13,0.92) 100%)" }} />
 
+
+      {/* ── Viewer silhouette ── */}
+      {user?.role === "viewer" && user?.viewerSilhouette && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+          <div className="flex flex-col items-center gap-2">
+            <span className="text-[120px] leading-none opacity-80" style={{ filter: "drop-shadow(0 8px 32px rgba(0,0,0,0.8))" }}>
+              {SILHOUETTE_EMOJI[user.viewerSilhouette] ?? "🛒"}
+            </span>
+            <p className="text-white/30 text-xs font-bold uppercase tracking-widest">Зритель</p>
+          </div>
+        </div>
+      )}
 
       {/* ── Car overlay: hidden (car shown as background) ── */}
       <div className="absolute inset-0 z-10 flex items-center justify-center px-4 pointer-events-none">

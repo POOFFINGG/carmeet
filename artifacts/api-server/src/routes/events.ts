@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { eventsTable, usersTable, applicationsTable, notificationsTable } from "@workspace/db/schema";
-import { eq, and, ilike, inArray, sql, ne, or } from "drizzle-orm";
+import { eq, and, ilike, inArray, sql, ne } from "drizzle-orm";
 import { getBot } from "../bot";
 
 async function geocode(location: string): Promise<{ lat: number; lng: number } | null> {

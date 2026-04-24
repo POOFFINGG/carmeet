@@ -316,7 +316,7 @@ export default function EventDetail() {
                 <button
                   key={app.id}
                   onClick={() => setSelectedUserId(app.userId)}
-                  className="w-full flex items-center gap-3 glass-panel p-3 rounded-xl active:scale-[0.98] transition-all text-left"
+                  className={cn("w-full flex items-center gap-3 glass-panel p-3 rounded-xl active:scale-[0.98] transition-all text-left", app.attendanceStatus === "not_going" && "opacity-40")}
                 >
                   <div className="w-9 h-9 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center font-black text-primary text-sm flex-shrink-0">
                     {app.userName?.[0]?.toUpperCase() || "?"}
@@ -365,7 +365,7 @@ export default function EventDetail() {
                 <button
                   key={app.id}
                   onClick={() => setSelectedUserId(app.userId)}
-                  className="w-full flex items-center gap-3 glass-panel p-3 rounded-xl active:scale-[0.98] transition-all text-left"
+                  className={cn("w-full flex items-center gap-3 glass-panel p-3 rounded-xl active:scale-[0.98] transition-all text-left", app.attendanceStatus === "not_going" && "opacity-40")}
                 >
                   <div className="w-9 h-9 rounded-full bg-white/10 border border-white/15 flex items-center justify-center font-black text-white/60 text-sm flex-shrink-0">
                     {app.userName?.[0]?.toUpperCase() || <EyeIcon className="w-4 h-4" />}

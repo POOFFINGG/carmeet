@@ -118,6 +118,11 @@ export default function Onboarding() {
   function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Файл слишком большой. Максимальный размер — 5 МБ.");
+      e.target.value = "";
+      return;
+    }
     const reader = new FileReader();
     reader.onload = () => setAvatarDataUrl(reader.result as string);
     reader.readAsDataURL(file);
@@ -265,7 +270,8 @@ export default function Onboarding() {
                   <div className="space-y-4 flex-1">
                     <div className="space-y-2">
                       <label className="text-sm font-semibold text-white/80">Название организации / клуба</label>
-                      <Input {...form.register("organizationName")} placeholder="Клуб или команда" />
+                      <Input {...form.register("organizationName")} placeholder="Клуб или команда" maxLength={100} />
+                      <p className="text-xs text-white/30">Максимум 100 символов</p>
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-semibold text-white/80">Ссылка для связи (Telegram, VK, сайт)</label>
@@ -274,6 +280,7 @@ export default function Onboarding() {
                     <div className="space-y-2">
                       <label className="text-sm font-semibold text-white/80">Контакт администратора</label>
                       <Input {...form.register("adminContact")} placeholder="@username или телефон" />
+                      <p className="text-xs text-white/30">Скрыт от участников, виден только администрации</p>
                     </div>
                     <div className="mt-4 pt-4 border-t border-white/8">
                       <p className="text-sm font-semibold text-white/80 mb-3">Основной автомобиль (необязательно)</p>

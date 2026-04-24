@@ -23,7 +23,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   club: "Автоклубы",
 };
 
-type DateFilter = "all" | "today" | "week";
+type DateFilter = "all" | "today" | "week" | "custom";
 
 export default function MapView() {
   const [, setLocation] = useLocation();
@@ -34,6 +34,8 @@ export default function MapView() {
   const [showFilters, setShowFilters] = useState(false);
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const [cityFilter, setCityFilter] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
   const { data: events } = useGetEvents();
 
   useEffect(() => {
@@ -94,6 +96,10 @@ export default function MapView() {
       } else if (dateFilter === "week") {
         const d = new Date(ev.date);
         if (d < todayStart || d >= weekEnd) return false;
+      } else if (dateFilter === "custom") {
+        const d = new Date(ev.date);
+        if (fromDate && d < new Date(fromDate)) return false;
+        if (toDate && d > new Date(toDate + "T23:59:59")) return false;
       }
       return true;
     });
@@ -141,7 +147,7 @@ export default function MapView() {
           </div>
         `, { maxWidth: 260 });
     });
-  }, [events, activeFilter, search, dateFilter, cityFilter]);
+  }, [events, activeFilter, search, dateFilter, cityFilter, fromDate, toDate]);
 
   return (
     <div className="relative w-full flex flex-col" style={{ height: "100dvh" }}>
@@ -233,8 +239,8 @@ export default function MapView() {
               ))}
             </div>
             {/* Date chips */}
-            <div className="flex gap-2">
-              {(["all", "today", "week"] as DateFilter[]).map(d => (
+            <div className="flex gap-2 overflow-x-auto no-scrollbar">
+              {(["all", "today", "week", "custom"] as DateFilter[]).map(d => (
                 <button
                   key={d}
                   onClick={() => setDateFilter(d)}
@@ -243,10 +249,33 @@ export default function MapView() {
                     dateFilter === d ? "bg-white text-black border-white" : "bg-black/60 border-white/10 text-white/60"
                   )}
                 >
-                  {d === "all" ? "Все даты" : d === "today" ? "Сегодня" : "Эта неделя"}
+                  {d === "all" ? "Все даты" : d === "today" ? "Сегодня" : d === "week" ? "Эта неделя" : "Период"}
                 </button>
               ))}
             </div>
+            {/* Custom date range pickers */}
+            {dateFilter === "custom" && (
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <input
+                    type="date"
+                    value={fromDate}
+                    onChange={e => setFromDate(e.target.value)}
+                    className="w-full px-3 py-2 bg-black/60 backdrop-blur-2xl border border-white/10 rounded-xl text-white text-xs outline-none focus:border-white/25 transition-colors [color-scheme:dark]"
+                    placeholder="С"
+                  />
+                </div>
+                <div className="flex-1">
+                  <input
+                    type="date"
+                    value={toDate}
+                    onChange={e => setToDate(e.target.value)}
+                    className="w-full px-3 py-2 bg-black/60 backdrop-blur-2xl border border-white/10 rounded-xl text-white text-xs outline-none focus:border-white/25 transition-colors [color-scheme:dark]"
+                    placeholder="По"
+                  />
+                </div>
+              </div>
+            )}
             {/* City search */}
             <div className="relative">
               <input

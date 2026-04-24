@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { eventsTable, usersTable, applicationsTable, notificationsTable } from "@workspace/db/schema";
-import { eq, and, ilike, inArray, sql } from "drizzle-orm";
+import { eq, and, ilike, inArray, sql, ne } from "drizzle-orm";
 
 async function geocode(location: string): Promise<{ lat: number; lng: number } | null> {
   try {
@@ -60,7 +60,7 @@ async function getCountsForEvents(eventIds: number[]) {
     .from(applicationsTable)
     .where(and(
       inArray(applicationsTable.eventId, eventIds),
-      eq(applicationsTable.status, "approved"),
+      ne(applicationsTable.status, "rejected"),
     ))
     .groupBy(applicationsTable.eventId, applicationsTable.type);
 

@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { eventsTable, usersTable, applicationsTable, notificationsTable } from "@workspace/db/schema";
 import { eq, and, ilike, inArray, sql, ne } from "drizzle-orm";
+import { getBot } from "../bot";
 
 async function geocode(location: string): Promise<{ lat: number; lng: number } | null> {
   try {
@@ -197,6 +198,42 @@ router.post("/events", async (req, res) => {
     .from(usersTable)
     .where(eq(usersTable.id, userId))
     .limit(1);
+
+  // Notify users interested in this category
+  const interestedUsers = await db
+    .select({ id: usersTable.id, telegramId: usersTable.telegramId })
+    .from(usersTable)
+    .where(and(
+      ne(usersTable.id, userId),
+      sql`${usersTable.interestCategories} && ARRAY[${category}]::text[]`,
+    ));
+
+  if (interestedUsers.length > 0) {
+    await db.insert(notificationsTable).values(
+      interestedUsers.map(u => ({
+        userId: u.id,
+        type: "new_event" as const,
+        title: "Новое мероприятие",
+        message: `${title} · ${new Date(date).toLocaleDateString("ru-RU", { day: "numeric", month: "long" })}`,
+        eventId: event.id,
+      }))
+    );
+
+    const bot = getBot();
+    if (bot) {
+      for (const u of interestedUsers) {
+        try {
+          await bot.api.sendMessage(u.telegramId, `🆕 Новое мероприятие в вашей категории!\n\n${title}`, {
+            reply_markup: {
+              inline_keyboard: [[
+                { text: "🎯 Открыть", web_app: { url: `${process.env.MINI_APP_URL ?? "https://auto-meet.ru"}/events/${event.id}` } },
+              ]],
+            },
+          });
+        } catch {}
+      }
+    }
+  }
 
   res.status(201).json(formatEvent(
     { ...event, organizerName: organizer?.displayName, organizerContact: organizer?.contactLink },

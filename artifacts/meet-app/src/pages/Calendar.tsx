@@ -35,6 +35,7 @@ export default function Calendar() {
   const [, setLocation] = useLocation();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const { data: events = [] } = useGetEvents();
 
   // Days in current month view (Mon-start)
@@ -65,15 +66,22 @@ export default function Calendar() {
   }, [currentMonth]);
 
   const eventsForDay = (day: Date) =>
-    events.filter(ev => isSameDay(parseISO(ev.date as string), day));
+    events.filter(ev =>
+      isSameDay(parseISO(ev.date as string), day) &&
+      (!activeFilter || ev.category === activeFilter)
+    );
 
   const selectedEvents = selectedDate ? eventsForDay(selectedDate) : [];
 
   // Events this month for the list below
   const monthEvents = useMemo(() =>
-    events.filter(ev => isSameMonth(parseISO(ev.date as string), currentMonth))
+    events
+      .filter(ev =>
+        isSameMonth(parseISO(ev.date as string), currentMonth) &&
+        (!activeFilter || ev.category === activeFilter)
+      )
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
-    [events, currentMonth]
+    [events, currentMonth, activeFilter]
   );
 
   const displayEvents = selectedDate ? selectedEvents : monthEvents;
@@ -88,7 +96,7 @@ export default function Calendar() {
             <p className="text-white/40 text-sm mt-0.5">
               {selectedDate
                 ? `${eventsForDay(selectedDate).length} событий`
-                : `${monthEvents.length} в этом месяце`}
+                : `${monthEvents.length} в этом месяце${activeFilter ? ` · ${CATEGORY_LABELS[activeFilter]}` : ""}`}
             </p>
           </div>
           <button
@@ -116,6 +124,36 @@ export default function Calendar() {
           >
             <ChevronRight className="w-5 h-5 text-white/70" />
           </button>
+        </div>
+
+        {/* Category filter chips */}
+        <div className="flex gap-2 overflow-x-auto no-scrollbar mb-3 -mx-1 px-1">
+          <button
+            onClick={() => { setActiveFilter(null); setSelectedDate(null); }}
+            className={cn(
+              "flex-shrink-0 px-4 py-1.5 rounded-xl text-xs font-bold border transition-all",
+              !activeFilter
+                ? "bg-white text-black border-white"
+                : "bg-white/8 border-white/10 text-white/60"
+            )}
+          >
+            Все
+          </button>
+          {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => { setActiveFilter(activeFilter === key ? null : key); setSelectedDate(null); }}
+              className="flex-shrink-0 px-4 py-1.5 rounded-xl text-xs font-bold border transition-all"
+              style={{
+                background: activeFilter === key ? CATEGORY_COLORS[key] : "rgba(255,255,255,0.05)",
+                borderColor: activeFilter === key ? CATEGORY_COLORS[key] : "rgba(255,255,255,0.1)",
+                color: "white",
+                boxShadow: activeFilter === key ? `0 0 12px ${CATEGORY_COLORS[key]}60` : "none",
+              }}
+            >
+              {label}
+            </button>
+          ))}
         </div>
 
         {/* Day of week headers */}

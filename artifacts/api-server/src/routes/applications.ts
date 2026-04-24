@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { applicationsTable, usersTable, eventsTable, carsTable, notificationsTable } from "@workspace/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
+import { getBot } from "../bot";
 
 const router: IRouter = Router();
 
@@ -149,6 +150,29 @@ router.post("/events/:eventId/applications", async (req, res) => {
       `${applicant?.displayName ?? "Пользователь"} подал заявку на участие в «${event.title}»`,
       eventId,
     );
+
+    // Send bot message to organizer with inline approve/reject buttons
+    const [orgUser] = await db
+      .select({ telegramId: usersTable.telegramId })
+      .from(usersTable)
+      .where(eq(usersTable.id, event.organizerId))
+      .limit(1);
+
+    const bot = getBot();
+    if (bot && orgUser) {
+      try {
+        await bot.api.sendMessage(orgUser.telegramId,
+          `🚗 Новая заявка!\n\n${applicant?.displayName ?? "Пользователь"} хочет участвовать в «${event.title}»`, {
+            reply_markup: {
+              inline_keyboard: [[
+                { text: "✅ Принять", callback_data: `approve_${inserted.id}` },
+                { text: "❌ Отклонить", callback_data: `reject_${inserted.id}` },
+              ]],
+            },
+          }
+        );
+      } catch {}
+    }
   }
 
   const [result] = await getApplicationsWithDetails(eq(applicationsTable.id, inserted.id));

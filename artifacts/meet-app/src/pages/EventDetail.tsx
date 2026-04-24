@@ -76,6 +76,7 @@ export default function EventDetail() {
   const primaryCar = cars?.find(c => c.isPrimary) || cars?.[0];
 
   const approvedParticipants = eventApps?.filter(a => a.status === "approved" && a.type === "participant") || [];
+  const approvedViewers = eventApps?.filter(a => a.status === "approved" && a.type === "viewer") || [];
 
   const isOrganizer = user?.id === event?.organizerId;
 
@@ -309,7 +310,7 @@ export default function EventDetail() {
         {/* Approved participants */}
         {approvedParticipants.length > 0 && (
           <div className="mb-6">
-            <h3 className="font-bold text-lg mb-3">Участники</h3>
+            <h3 className="font-bold text-lg mb-3">Участники с проектом</h3>
             <div className="space-y-2">
               {approvedParticipants.map(app => (
                 <button
@@ -325,6 +326,53 @@ export default function EventDetail() {
                     {(app.carMake || app.carModel) && (
                       <p className="text-white/40 text-xs truncate">{app.carMake} {app.carModel}</p>
                     )}
+                  </div>
+                  <div className="flex items-center flex-shrink-0">
+                    {app.attendanceStatus === "going" && (
+                      <span className="flex items-center">
+                        <CheckCircle2 className="w-4 h-4 text-green-400 -mr-1.5" />
+                        <CheckCircle2 className="w-4 h-4 text-green-400" />
+                      </span>
+                    )}
+                    {app.attendanceStatus === "thinking" && (
+                      <span className="flex items-center">
+                        <CheckCircle2 className="w-4 h-4 text-yellow-400 -mr-1.5" />
+                        <CheckCircle2 className="w-4 h-4 text-yellow-400" />
+                      </span>
+                    )}
+                    {app.attendanceStatus === "not_going" && (
+                      <span className="flex items-center">
+                        <CheckCircle2 className="w-4 h-4 text-red-400 -mr-1.5" />
+                        <CheckCircle2 className="w-4 h-4 text-red-400" />
+                      </span>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Approved viewers */}
+        {approvedViewers.length > 0 && (
+          <div className="mb-6">
+            <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
+              <EyeIcon className="w-5 h-5 text-white/50" />
+              Зрители
+            </h3>
+            <div className="space-y-2">
+              {approvedViewers.map(app => (
+                <button
+                  key={app.id}
+                  onClick={() => setSelectedUserId(app.userId)}
+                  className="w-full flex items-center gap-3 glass-panel p-3 rounded-xl active:scale-[0.98] transition-all text-left"
+                >
+                  <div className="w-9 h-9 rounded-full bg-white/10 border border-white/15 flex items-center justify-center font-black text-white/60 text-sm flex-shrink-0">
+                    {app.userName?.[0]?.toUpperCase() || <EyeIcon className="w-4 h-4" />}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-white/80 text-sm font-bold truncate">{app.userName || "Зритель"}</p>
+                    <p className="text-white/30 text-xs">Зритель</p>
                   </div>
                   <div className="flex items-center flex-shrink-0">
                     {app.attendanceStatus === "going" && (

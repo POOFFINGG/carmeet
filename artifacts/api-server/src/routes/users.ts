@@ -19,6 +19,8 @@ function formatUser(user: any) {
     viewerSilhouette: user.viewerSilhouette,
     interestCategories: user.interestCategories,
     onboardingComplete: user.onboardingComplete,
+    notifWeek: user.notifWeek,
+    notifDay: user.notifDay,
     createdAt: user.createdAt.toISOString(),
   };
 }
@@ -104,7 +106,7 @@ router.patch("/users/me", async (req, res) => {
     return;
   }
 
-  const { role, interestCategories, organizationName, contactLink, adminContact, avatarUrl, displayName, viewerSilhouette } = req.body;
+  const { role, interestCategories, organizationName, contactLink, adminContact, avatarUrl, displayName, viewerSilhouette, notifWeek, notifDay } = req.body;
 
   const updateData: Record<string, unknown> = { updatedAt: new Date() };
   if (role !== undefined) updateData.role = role;
@@ -115,6 +117,8 @@ router.patch("/users/me", async (req, res) => {
   if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl;
   if (displayName !== undefined) updateData.displayName = displayName;
   if (viewerSilhouette !== undefined) updateData.viewerSilhouette = viewerSilhouette;
+  if (notifWeek !== undefined) updateData.notifWeek = notifWeek;
+  if (notifDay !== undefined) updateData.notifDay = notifDay;
 
   const updated = await db
     .update(usersTable)

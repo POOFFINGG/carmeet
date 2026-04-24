@@ -15,6 +15,8 @@ export const usersTable = pgTable("users", {
   viewerSilhouette: text("viewer_silhouette", { enum: ["bicycle", "scooter", "skateboard", "cart"] }),
   interestCategories: text("interest_categories").array().notNull().default([]),
   onboardingComplete: boolean("onboarding_complete").notNull().default(false),
+  notifWeek: boolean("notif_week").notNull().default(true),
+  notifDay: boolean("notif_day").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

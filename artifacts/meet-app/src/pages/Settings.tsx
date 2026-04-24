@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { ChevronLeft, UserCog, Tag, MessageCircle, ChevronRight, Check, Plus, Pencil } from "lucide-react";
+import { ChevronLeft, UserCog, Tag, MessageCircle, ChevronRight, Check, Plus, Pencil, Bell } from "lucide-react";
 import { useGetMe, useGetMyCars } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
@@ -32,6 +32,8 @@ export default function Settings() {
   const [selectedRole, setSelectedRole] = useState(user?.role ?? "viewer");
   const [selectedCats, setSelectedCats] = useState<string[]>(user?.interestCategories ?? []);
   const [saving, setSaving] = useState(false);
+  const [notifWeek, setNotifWeek] = useState<boolean>(user?.notifWeek ?? true);
+  const [notifDay, setNotifDay] = useState<boolean>(user?.notifDay ?? true);
 
   const tgUser = getTgUser();
   const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -84,6 +86,18 @@ export default function Settings() {
     setSelectedCats(prev =>
       prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
     );
+  }
+
+  async function toggleNotifWeek() {
+    const next = !notifWeek;
+    setNotifWeek(next);
+    await patchUser({ notifWeek: next });
+  }
+
+  async function toggleNotifDay() {
+    const next = !notifDay;
+    setNotifDay(next);
+    await patchUser({ notifDay: next });
   }
 
   // ── Sub-screens ────────────────────────────────────────────────────────────
@@ -336,6 +350,62 @@ export default function Settings() {
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 text-white/25" />
+            </button>
+          </div>
+        </div>
+
+        {/* ── Уведомления ── */}
+        <div>
+          <p className="text-white/30 text-xs font-bold uppercase tracking-widest mb-2 px-1">Уведомления</p>
+          <div className="bg-white/4 rounded-2xl border border-white/6 overflow-hidden divide-y divide-white/6">
+            {/* notifWeek toggle */}
+            <button
+              onClick={toggleNotifWeek}
+              className="w-full flex items-center justify-between px-4 py-4 active:bg-white/4 transition-all"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-500/15 flex items-center justify-center">
+                  <Bell className="w-4.5 h-4.5 text-amber-400" />
+                </div>
+                <div className="text-left">
+                  <p className="text-white font-bold text-sm">Напоминание за неделю</p>
+                  <p className="text-white/35 text-xs mt-0.5">За 7 дней до события</p>
+                </div>
+              </div>
+              <div className={cn(
+                "w-12 h-6 rounded-full border-2 transition-all relative flex-shrink-0",
+                notifWeek ? "border-amber-500 bg-amber-500" : "border-white/20 bg-white/10"
+              )}>
+                <div className={cn(
+                  "absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all",
+                  notifWeek ? "left-[26px]" : "left-0.5"
+                )} />
+              </div>
+            </button>
+
+            {/* notifDay toggle */}
+            <button
+              onClick={toggleNotifDay}
+              className="w-full flex items-center justify-between px-4 py-4 active:bg-white/4 transition-all"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-500/15 flex items-center justify-center">
+                  <Bell className="w-4.5 h-4.5 text-amber-400" />
+                </div>
+                <div className="text-left">
+                  <p className="text-white font-bold text-sm">Напоминание за день</p>
+                  <p className="text-white/35 text-xs mt-0.5">За 24 часа до события</p>
+                </div>
+              </div>
+              <div className={cn(
+                "w-12 h-6 rounded-full border-2 transition-all relative flex-shrink-0",
+                notifDay ? "border-amber-500 bg-amber-500" : "border-white/20 bg-white/10"
+              )}>
+                <div className={cn(
+                  "absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all",
+                  notifDay ? "left-[26px]" : "left-0.5"
+                )} />
+              </div>
             </button>
           </div>
         </div>

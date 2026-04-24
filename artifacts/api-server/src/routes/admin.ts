@@ -1,8 +1,9 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
-import { usersTable, eventsTable, carsTable } from "@workspace/db/schema";
+import { usersTable, eventsTable, carsTable, notificationsTable } from "@workspace/db/schema";
 import { eq, sql, desc, ilike, or } from "drizzle-orm";
 import crypto from "crypto";
+import { getBot } from "../bot";
 
 const router: IRouter = Router();
 
@@ -142,6 +143,31 @@ router.post("/admin/moderation/:carId/reject", async (req, res) => {
     aiGenerationAttempts: 0,
   }).where(eq(carsTable.id, carId)).returning();
   if (!updated) { res.status(404).json({ error: "Not found" }); return; }
+
+  // Notify car owner about rejection
+  const [owner] = await db.select({ telegramId: usersTable.telegramId }).from(usersTable).where(eq(usersTable.id, updated.userId)).limit(1);
+  if (owner) {
+    await db.insert(notificationsTable).values({
+      userId: updated.userId,
+      type: "event_cancelled" as const,
+      title: "Изображение отклонено",
+      message: "Ваше AI-изображение не прошло модерацию. Загрузите новые фотографии автомобиля. Вам предоставлены 3 новые попытки.",
+      eventId: null,
+    });
+    const bot = getBot();
+    if (bot) {
+      try {
+        await bot.api.sendMessage(owner.telegramId, "❌ Ваше AI-изображение не прошло модерацию.\n\nПожалуйста, загрузите новые фотографии автомобиля. Вам предоставлены 3 новые попытки.", {
+          reply_markup: {
+            inline_keyboard: [[
+              { text: "📸 Загрузить новое фото", web_app: { url: `${process.env.MINI_APP_URL ?? "https://auto-meet.ru"}/garage` } },
+            ]],
+          },
+        });
+      } catch {}
+    }
+  }
+
   res.json({ id: updated.id, aiStatus: updated.aiStatus });
 });
 

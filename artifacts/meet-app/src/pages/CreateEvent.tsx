@@ -46,6 +46,8 @@ const SUBCATEGORIES: Record<string, { id: string; label: string }[]> = {
 const schema = z.object({
   title: z.string().min(3, "Минимум 3 символа"),
   description: z.string().optional(),
+  coverImageUrl: z.string().url("Введите корректный URL").optional().or(z.literal("")),
+  organizerLink: z.string().optional(),
   category: z.enum(["motorsport", "exhibition", "cruise", "club"]),
   subcategories: z.array(z.string()).min(1, "Выберите хотя бы один тип"),
   date: z.string().min(1, "Укажите дату"),
@@ -94,6 +96,8 @@ export default function CreateEvent() {
         data: {
           title: data.title,
           description: data.description || null,
+          coverImageUrl: data.coverImageUrl || null,
+          organizerLink: data.organizerLink || null,
           category: data.category,
           subcategories: data.subcategories,
           date: new Date(data.date).toISOString(),
@@ -141,6 +145,19 @@ export default function CreateEvent() {
               rows={4}
               className="flex w-full rounded-xl border-2 border-border bg-background/50 px-4 py-3 text-sm focus-visible:outline-none focus-visible:border-primary text-white resize-none"
             />
+          </div>
+
+          {/* Cover image URL */}
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-white/80">Ссылка на афишу (необязательно)</label>
+            <Input {...register("coverImageUrl")} placeholder="https://..." />
+            {errors.coverImageUrl && <p className="text-primary text-xs">{errors.coverImageUrl.message}</p>}
+          </div>
+
+          {/* Organizer link */}
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-white/80">Ссылка организатора (необязательно)</label>
+            <Input {...register("organizerLink")} placeholder="https://t.me/..." />
           </div>
 
           {/* Category */}

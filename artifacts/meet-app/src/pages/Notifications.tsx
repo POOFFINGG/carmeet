@@ -3,14 +3,30 @@ import { useGetMyNotifications, useGetMyApplications, useGetMe } from "@workspac
 import { Bell, ChevronRight, ClipboardList, Send } from "lucide-react";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
-import { cn } from "@/lib/utils";
+import { cn, getTgUser } from "@/lib/utils";
 import { BottomNav } from "@/components/Navigation";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function Notifications() {
   const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
   const { data: notifications, isLoading: notifLoading } = useGetMyNotifications();
   const { data: user } = useGetMe({ query: { retry: false } });
   const { data: apps, isLoading: appsLoading } = useGetMyApplications({ query: { enabled: !!user } });
+
+  async function markRead(notifId: number) {
+    const tgUser = getTgUser();
+    // Optimistic update
+    queryClient.setQueryData<any[]>(["/api/users/me/notifications"], old =>
+      old?.map(n => n.id === notifId ? { ...n, read: true } : n)
+    );
+    try {
+      await fetch(`/api/users/me/notifications/${notifId}`, {
+        method: "PATCH",
+        headers: { "x-telegram-id": String(tgUser.id) },
+      });
+    } catch {}
+  }
 
   return (
     <div className="min-h-screen bg-[#0d0d0d] flex flex-col">
@@ -52,9 +68,10 @@ export default function Notifications() {
             </div>
             <div className="flex flex-col gap-2">
               {apps.map(app => (
-                <div
+                <button
                   key={app.id}
-                  className="bg-white/5 rounded-2xl p-3.5 flex items-center justify-between border border-white/8"
+                  onClick={() => setLocation(`/events/${app.eventId}`)}
+                  className="bg-white/5 rounded-2xl p-3.5 flex items-center justify-between border border-white/8 text-left active:scale-[0.98] transition-transform w-full"
                 >
                   <div className="min-w-0 flex-1">
                     <h4 className="font-bold text-white text-sm truncate">{app.eventTitle || "Событие"}</h4>
@@ -74,7 +91,7 @@ export default function Notifications() {
                     </div>
                   </div>
                   <ChevronRight className="text-white/30 w-4 h-4 flex-shrink-0 ml-2" />
-                </div>
+                </button>
               ))}
             </div>
           </div>
@@ -114,14 +131,21 @@ export default function Notifications() {
           ) : notifications?.length ? (
             <div className="flex flex-col gap-3">
               {notifications.map(notif => (
-                <div key={notif.id} className="p-4 bg-white/5 rounded-2xl border border-white/8 relative overflow-hidden">
+                <button
+                  key={notif.id}
+                  onClick={() => {
+                    if (!notif.read) markRead(notif.id);
+                    if (notif.eventId) setLocation(`/events/${notif.eventId}`);
+                  }}
+                  className="p-4 bg-white/5 rounded-2xl border border-white/8 relative overflow-hidden text-left active:scale-[0.98] transition-transform w-full"
+                >
                   {!notif.read && <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-primary" />}
                   <p className="font-bold text-white text-sm mb-1 pr-4">{notif.title}</p>
                   <p className="text-xs text-white/40 mb-2">{notif.message}</p>
                   <p className="text-[10px] font-bold text-white/25 uppercase tracking-wider">
                     {format(new Date(notif.createdAt), "d MMM, HH:mm", { locale: ru })}
                   </p>
-                </div>
+                </button>
               ))}
             </div>
           ) : (

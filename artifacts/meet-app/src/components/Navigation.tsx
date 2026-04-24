@@ -13,7 +13,7 @@ export function BottomNav() {
   const isGarageActive = location === "/garage";
 
   const tabs = [
-    { href: "/notifications", icon: Bell, label: "Уведомл." },
+    { href: "https://t.me/automeet1bot", icon: Bell, label: "Уведомл.", external: true, externalHref: "https://t.me/automeet1bot" },
     { href: "/events", icon: Calendar, label: "Календарь" },
     { href: "/garage", label: "Гараж", isGarage: true },
     { href: "/map", icon: MapIcon, label: "Карта" },

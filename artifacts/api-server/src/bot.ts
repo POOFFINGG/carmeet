@@ -77,6 +77,10 @@ export function createBot() {
         await ctx.answerCallbackQuery("✅ Заявка одобрена");
         await ctx.editMessageReplyMarkup({ reply_markup: { inline_keyboard: [] } });
 
+      } else if (data.startsWith("decline_invite_")) {
+        await ctx.answerCallbackQuery("Понято, вы отказались от приглашения");
+        await ctx.editMessageReplyMarkup({ reply_markup: { inline_keyboard: [] } });
+
       } else if (data.startsWith("reject_")) {
         const appId = parseInt(data.replace("reject_", ""));
         const [app] = await db.select().from(applicationsTable).where(eq(applicationsTable.id, appId)).limit(1);

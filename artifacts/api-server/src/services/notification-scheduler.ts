@@ -51,11 +51,15 @@ async function sendReminders(bot: Bot, daysAhead: number) {
   if (apps.length === 0) return;
 
   const userIds = [...new Set(apps.map(a => a.userId))];
-  const users = await db.select({ id: usersTable.id, telegramId: usersTable.telegramId })
+  const users = await db.select({ id: usersTable.id, telegramId: usersTable.telegramId, notifWeek: usersTable.notifWeek, notifDay: usersTable.notifDay })
     .from(usersTable)
     .where(inArray(usersTable.id, userIds));
 
-  const telegramIdMap = new Map(users.map(u => [u.id, u.telegramId]));
+  // Filter by user notification preference
+  const prefField = daysAhead === 7 ? "notifWeek" : "notifDay";
+  const filteredUsers = users.filter(u => u[prefField] !== false);
+
+  const telegramIdMap = new Map(filteredUsers.map(u => [u.id, u.telegramId]));
   const eventMap = new Map(events.map(e => [e.id, e]));
 
   for (const app of apps) {

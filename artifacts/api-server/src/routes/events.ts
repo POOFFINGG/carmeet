@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { eventsTable, usersTable, applicationsTable, notificationsTable } from "@workspace/db/schema";
-import { eq, and, ilike, inArray, sql, ne } from "drizzle-orm";
+import { eq, and, ilike, inArray, sql, ne, or } from "drizzle-orm";
 import { getBot } from "../bot";
 
 async function geocode(location: string): Promise<{ lat: number; lng: number } | null> {
@@ -325,6 +325,21 @@ router.delete("/events/:eventId", async (req, res) => {
         eventId,
       })),
     );
+
+    const userIds = approvedApps.map(a => a.userId);
+    const telegramUsers = await db
+      .select({ id: usersTable.id, telegramId: usersTable.telegramId })
+      .from(usersTable)
+      .where(inArray(usersTable.id, userIds));
+
+    const bot = getBot();
+    if (bot) {
+      for (const u of telegramUsers) {
+        try {
+          await bot.api.sendMessage(u.telegramId, `❌ Мероприятие «${existing.title}» было отменено организатором.`);
+        } catch {}
+      }
+    }
   }
 
   res.json({ success: true });
@@ -382,7 +397,7 @@ router.post("/events/:eventId/invite", async (req, res) => {
   const { username } = req.body;
   if (!username) { res.status(400).json({ error: "username required" }); return; }
 
-  const [targetUser] = await db.select({ id: usersTable.id })
+  const [targetUser] = await db.select({ id: usersTable.id, telegramId: usersTable.telegramId })
     .from(usersTable).where(eq(usersTable.username, username)).limit(1);
   if (!targetUser) { res.status(404).json({ error: "User not found" }); return; }
 
@@ -393,6 +408,22 @@ router.post("/events/:eventId/invite", async (req, res) => {
     message: "Организатор мероприятия отправил вам личное приглашение.",
     eventId,
   });
+
+  const bot = getBot();
+  if (bot) {
+    try {
+      await bot.api.sendMessage(targetUser.telegramId,
+        `🎉 Вас приглашают на мероприятие «${event.title}»!`, {
+          reply_markup: {
+            inline_keyboard: [[
+              { text: "✅ Приеду", web_app: { url: `${process.env.MINI_APP_URL ?? "https://auto-meet.ru"}/events/${eventId}` } },
+              { text: "❌ Не поеду", callback_data: `decline_invite_${eventId}` },
+            ]],
+          },
+        }
+      );
+    } catch {}
+  }
 
   res.json({ success: true });
 });

@@ -143,6 +143,17 @@ router.post("/events/:eventId/applications", async (req, res) => {
       .where(eq(usersTable.id, userId))
       .limit(1);
 
+    // Fetch car info if provided
+    let carInfo = "";
+    if (carId) {
+      const [car] = await db
+        .select({ make: carsTable.make, model: carsTable.model })
+        .from(carsTable)
+        .where(eq(carsTable.id, carId))
+        .limit(1);
+      if (car) carInfo = ` с ${car.make} ${car.model}`;
+    }
+
     await createNotification(
       event.organizerId,
       "new_event",
@@ -162,7 +173,7 @@ router.post("/events/:eventId/applications", async (req, res) => {
     if (bot && orgUser) {
       try {
         await bot.api.sendMessage(orgUser.telegramId,
-          `🚗 Новая заявка!\n\n${applicant?.displayName ?? "Пользователь"} хочет участвовать в «${event.title}»`, {
+          `🚗 Новая заявка!\n\n${applicant?.displayName ?? "Пользователь"} хочет участвовать в «${event.title}»${carInfo}`, {
             reply_markup: {
               inline_keyboard: [[
                 { text: "✅ Принять", callback_data: `approve_${inserted.id}` },
